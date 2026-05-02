@@ -1,7 +1,6 @@
 extends Node
-class_name TouchRouter
-
-## TouchRouter - Core Layer
+# TouchRouter - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via TouchRouter globally
 ## Implements: ADR-0006 Touch Input Routing
 ## TR IDs: TR-input-001, TR-input-002, TR-input-003
 

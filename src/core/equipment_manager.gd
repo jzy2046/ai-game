@@ -1,9 +1,8 @@
 extends Node
-class_name EquipmentManager
-
-## EquipmentManager - Core Layer
-## Implements equipment slot management
-## Depends on: ItemRegistry, SaveManager
+# EquipmentManager - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via EquipmentManager globally
+# Implements equipment slot management
+# Depends on: ItemRegistry, SaveManager
 
 ## Signals
 signal equipment_changed(slot: int, equipment_id: String)
@@ -18,6 +17,7 @@ enum Slot { WEAPON, HELM, CHEST, GLOVES, BOOTS, ACCESSORY }
 ## State
 var _equipped_slots: Dictionary = {}  # {slot: {id, level}}
 var _slot_compatibility: Dictionary = {}  # Maps equipment.slot to manager slot
+var _item_registry: Node = null  # Cached reference to ItemRegistry autoload
 
 #region Public API
 
@@ -26,15 +26,16 @@ func equip(slot: int, equipment_id: String) -> bool:
 	if slot < 0 or slot >= TOTAL_SLOT_COUNT:
 		return false
 
-	# Check slot compatibility
-	var equipment_def: Dictionary = ItemRegistry.get_equipment(equipment_id)
-	if equipment_def.is_empty():
-		return false
+	# Check slot compatibility via ItemRegistry
+	if _item_registry and _item_registry.has_method("get_equipment"):
+		var equipment_def: Dictionary = _item_registry.get_equipment(equipment_id)
+		if equipment_def.is_empty():
+			return false
 
-	var equipment_slot: int = equipment_def.get("slot", -1)
-	if equipment_slot != slot:
-		push_warning("Equipment %s incompatible with slot %d" % [equipment_id, slot])
-		return false
+		var equipment_slot: int = equipment_def.get("slot", -1)
+		if equipment_slot != slot:
+			push_warning("Equipment %s incompatible with slot %d" % [equipment_id, slot])
+			return false
 
 	_equipped_slots[slot] = {
 		id = equipment_id,
@@ -81,11 +82,11 @@ func get_total_stats() -> Dictionary:
 	for slot in _equipped_slots:
 		var equipped: Dictionary = _equipped_slots[slot]
 		var level: int = equipped.get("level", 0)
-		var enhanced: Dictionary = ItemRegistry.get_enhanced_stats(equipped.id, level)
-
-		total_attack += enhanced.get("attack", 0)
-		total_defense += enhanced.get("defense", 0)
-		total_power += enhanced.get("power", 0)
+		if _item_registry and _item_registry.has_method("get_enhanced_stats"):
+			var enhanced: Dictionary = _item_registry.get_enhanced_stats(equipped.id, level)
+			total_attack += enhanced.get("attack", 0)
+			total_defense += enhanced.get("defense", 0)
+			total_power += enhanced.get("power", 0)
 
 	return {
 		attack = total_attack,
@@ -105,6 +106,8 @@ func set_all_equipped(equipped: Dictionary) -> void:
 #region Lifecycle
 
 func _ready():
+	# Cache ItemRegistry reference
+	_item_registry = get_node("/root/ItemRegistry")
 	# Initialize all slots empty
 	for i in range(TOTAL_SLOT_COUNT):
 		_equipped_slots[i] = {id = "", level = 0}

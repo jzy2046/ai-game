@@ -1,7 +1,6 @@
 extends Node
-class_name AudioPool
-
-## AudioPool - Polish Layer
+# AudioPool - Polish Layer
+# NOTE: No class_name - autoload singleton, accessed via AudioPool globally
 ## Implements: ADR-0004 Audio System Pooling
 ## TR IDs: TR-audio-001, TR-audio-002
 

@@ -1,7 +1,6 @@
 extends Node
-class_name EnemyController
-
-## EnemyController - Core Layer
+# EnemyController - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via EnemyController globally
 ## Implements: ADR-0008 Enemy State Machine
 ## TR IDs: TR-state-001, TR-state-002
 
@@ -137,9 +136,12 @@ func _on_state_timer_complete(enemy_id: String, next_state: int, emit_rewards: b
 		var rewards: Dictionary = enemy.get("rewards", {})
 		emit_signal("enemy_defeated", enemy_id, rewards)
 
-		# Check if boss floor
-		if DungeonProgress.is_boss_floor(enemy.floor):
-			DungeonProgress.mark_boss_defeated(enemy.floor)
+		# Check if boss floor - access DungeonProgress via get_node
+		var dungeon: Node = get_node("/root/DungeonProgress")
+		if dungeon and dungeon.has_method("is_boss_floor"):
+			if dungeon.is_boss_floor(enemy.floor):
+				if dungeon.has_method("mark_boss_defeated"):
+					dungeon.mark_boss_defeated(enemy.floor)
 
 		# Cleanup
 		_active_enemies.erase(enemy_id)

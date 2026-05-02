@@ -1,8 +1,7 @@
 extends Node
-class_name DungeonDriver
-
-## DungeonDriver - Feature Layer
-## Implements floor progression logic
+# DungeonDriver - Feature Layer
+# NOTE: No class_name - autoload singleton, accessed via DungeonDriver globally
+# Implements floor progression logic
 
 ## Signals
 signal floor_complete(floor: int)
@@ -13,6 +12,10 @@ signal enemies_spawned(floor: int, count: int)
 var _floor_enemies: Array = []  # Active enemies on current floor
 var _enemies_defeated: int = 0
 var _total_enemies: int = 0
+# Cached autoload references
+var _enemy_controller: Node = null
+var _dungeon_progress: Node = null
+var _combat_engine: Node = null
 
 #region Public API
 
@@ -24,8 +27,9 @@ func start_floor(floor: int) -> void:
 	_floor_enemies.clear()
 
 	for i in range(enemy_count):
-		var enemy: Dictionary = EnemyController.spawn_enemy(floor)
-		_floor_enemies.append(enemy.id)
+		if _enemy_controller and _enemy_controller.has_method("spawn_enemy"):
+			var enemy: Dictionary = _enemy_controller.spawn_enemy(floor)
+			_floor_enemies.append(enemy.id)
 
 	emit_signal("enemies_spawned", floor, enemy_count)
 
@@ -35,12 +39,14 @@ func start_floor(floor: int) -> void:
 
 func advance_to_next() -> void:
 	## Advance to next floor after current complete
-	var current: int = DungeonProgress.get_current_floor()
-	DungeonProgress.advance_floor()
-	emit_signal("floor_advanced", DungeonProgress.get_current_floor())
+	if _dungeon_progress and _dungeon_progress.has_method("get_current_floor"):
+		var current: int = _dungeon_progress.get_current_floor()
+		if _dungeon_progress.has_method("advance_floor"):
+			_dungeon_progress.advance_floor()
+		emit_signal("floor_advanced", _dungeon_progress.get_current_floor())
 
-	# Start next floor
-	start_floor(DungeonProgress.get_current_floor())
+		# Start next floor
+		start_floor(_dungeon_progress.get_current_floor())
 
 func is_floor_complete() -> bool:
 	return _enemies_defeated >= _total_enemies
@@ -51,25 +57,34 @@ func on_enemy_defeated(enemy_id: String) -> void:
 
 	# Check floor completion
 	if is_floor_complete():
-		emit_signal("floor_complete", DungeonProgress.get_current_floor())
+		if _dungeon_progress and _dungeon_progress.has_method("get_current_floor"):
+			emit_signal("floor_complete", _dungeon_progress.get_current_floor())
 
-		# Check if boss floor
-		if DungeonProgress.is_boss_floor(DungeonProgress.get_current_floor()):
-			# Boss floor - pause for victory feedback
-			await get_tree().create_timer(1.0).timeout
-			advance_to_next()
-		else:
-			# Normal floor - start next combat
-			_start_next_combat()
+			# Check if boss floor
+			if _dungeon_progress.has_method("is_boss_floor"):
+				if _dungeon_progress.is_boss_floor(_dungeon_progress.get_current_floor()):
+					# Boss floor - pause for victory feedback
+					await get_tree().create_timer(1.0).timeout
+					advance_to_next()
+				else:
+					# Normal floor - start next combat
+					_start_next_combat()
 
 #region Lifecycle
 
 func _ready():
+	# Cache autoload references
+	_enemy_controller = get_node("/root/EnemyController")
+	_dungeon_progress = get_node("/root/DungeonProgress")
+	_combat_engine = get_node("/root/CombatEngine")
+
 	# Connect to EnemyController
-	EnemyController.enemy_defeated.connect(_on_enemy_defeated_signal)
+	if _enemy_controller and _enemy_controller.has_signal("enemy_defeated"):
+		_enemy_controller.enemy_defeated.connect(_on_enemy_defeated_signal)
 
 	# Start first floor
-	start_floor(DungeonProgress.get_current_floor())
+	if _dungeon_progress and _dungeon_progress.has_method("get_current_floor"):
+		start_floor(_dungeon_progress.get_current_floor())
 
 #endregion
 
@@ -80,15 +95,20 @@ func _on_enemy_defeated_signal(enemy_id: String, rewards: Dictionary) -> void:
 
 func _start_next_combat() -> void:
 	## Start combat with next enemy in queue
-	_floor_enemies = _floor_enemies.filter(func(id): return EnemyController.get_enemy_state(id) != EnemyController.EnemyState.DEFEATED)
+	if _enemy_controller and _enemy_controller.has_method("get_enemy_state"):
+		var defeated_state: int = 2  # EnemyController.EnemyState.DEFEATED
+		_floor_enemies = _floor_enemies.filter(func(id): return _enemy_controller.get_enemy_state(id) != defeated_state)
 
 	if _floor_enemies.size() > 0:
 		var next_enemy_id: String = _floor_enemies[0]
-		var enemy_data: Dictionary = EnemyController.get_enemy_data(next_enemy_id)
-		CombatEngine.start_battle(enemy_data)
+		if _enemy_controller and _enemy_controller.has_method("get_enemy_data"):
+			var enemy_data: Dictionary = _enemy_controller.get_enemy_data(next_enemy_id)
+			if _combat_engine and _combat_engine.has_method("start_battle"):
+				_combat_engine.start_battle(enemy_data)
 	elif not is_floor_complete():
 		# Spawn more enemies if needed
-		start_floor(DungeonProgress.get_current_floor())
+		if _dungeon_progress and _dungeon_progress.has_method("get_current_floor"):
+			start_floor(_dungeon_progress.get_current_floor())
 
 func _get_enemy_count(floor: int) -> int:
 	## Enemy count per floor (stepped: 1, 2, 3, 4)

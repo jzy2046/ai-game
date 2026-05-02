@@ -1,7 +1,6 @@
 extends Node
-class_name DungeonProgress
-
-## DungeonProgress - Core Layer
+# DungeonProgress - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via DungeonProgress globally
 ## Implements floor tracking and checkpoint management
 
 ## Signals

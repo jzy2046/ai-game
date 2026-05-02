@@ -1,8 +1,7 @@
 extends Node
-class_name FeedbackCoordinator
-
-## FeedbackCoordinator - Presentation Layer
-## Implements multi-system feedback orchestration
+# FeedbackCoordinator - Presentation Layer
+# NOTE: No class_name - autoload singleton, accessed via FeedbackCoordinator globally
+# Implements multi-system feedback orchestration
 
 ## Signals
 
@@ -18,6 +17,10 @@ const EVENT_FLOOR_COMPLETE: String = "floor_complete"
 ## State
 var _event_queue: Array = []
 var _active_feedback: Dictionary = {}
+# Cached autoload references
+var _particle_pool: Node = null
+var _vibration_controller: Node = null
+var _audio_pool: Node = null
 
 #region Public API
 
@@ -27,19 +30,19 @@ func trigger_feedback(event_name: String, tier: int, data: Dictionary) -> void:
 
 	# Particle feedback
 	var particle_preset: String = _get_particle_preset(event_name)
-	if not particle_preset.is_empty():
+	if not particle_preset.is_empty() and _particle_pool and _particle_pool.has_method("spawn_preset"):
 		var position: Vector2 = data.get("position", Vector2(360, 640))
-		ParticlePool.spawn_preset(particle_preset, position, tier)
+		_particle_pool.spawn_preset(particle_preset, position, tier)
 
-	# Vibration feedback
+	# Vibration feedback (disabled on desktop)
 	var vibration_pattern: String = _get_vibration_pattern(event_name)
-	if not vibration_pattern.is_empty():
-		VibrationController.vibrate(vibration_pattern, tier)
+	if not vibration_pattern.is_empty() and _vibration_controller and _vibration_controller.has_method("vibrate"):
+		_vibration_controller.vibrate(vibration_pattern, tier)
 
 	# Audio feedback
 	var sfx_name: String = _get_sfx_name(event_name)
-	if not sfx_name.is_empty():
-		AudioPool.play_sfx(sfx_name)
+	if not sfx_name.is_empty() and _audio_pool and _audio_pool.has_method("play_sfx"):
+		_audio_pool.play_sfx(sfx_name)
 
 func queue_layered(events: Array, base_delay: float = 0.3) -> void:
 	## Queue sequential feedback with delays
@@ -61,27 +64,37 @@ func cancel_feedback(event_name: String) -> void:
 
 #endregion
 
+#region Lifecycle
+
+func _ready():
+	# Cache autoload references
+	_particle_pool = get_node("/root/ParticlePool")
+	_vibration_controller = get_node("/root/VibrationController")
+	_audio_pool = get_node("/root/AudioPool")
+
+#endregion
+
 #region Internal
 
 func _get_particle_preset(event_name: String) -> String:
-	## Map event to particle preset
+	## Map event to particle preset (use constant strings directly)
 	var preset_map: Dictionary = {
-		EVENT_HIT: ParticlePool.PRESET_HIT_FLASH,
-		EVENT_GOLD_GAIN: ParticlePool.PRESET_GOLD_BURST,
-		EVENT_ENHANCEMENT: ParticlePool.PRESET_ENHANCEMENT_FLASH,
-		EVENT_LEVEL_UP: ParticlePool.PRESET_LEVEL_UP,
-		EVENT_VICTORY: ParticlePool.PRESET_VICTORY_SPARKLE,
-		EVENT_FLOOR_COMPLETE: ParticlePool.PRESET_VICTORY_SPARKLE,
+		EVENT_HIT: "hit_flash",
+		EVENT_GOLD_GAIN: "gold_burst",
+		EVENT_ENHANCEMENT: "enhancement_flash",
+		EVENT_LEVEL_UP: "level_up",
+		EVENT_VICTORY: "victory_sparkle",
+		EVENT_FLOOR_COMPLETE: "victory_sparkle",
 	}
 	return preset_map.get(event_name, "")
 
 func _get_vibration_pattern(event_name: String) -> String:
-	## Map event to vibration pattern
+	## Map event to vibration pattern (use constant strings directly)
 	var pattern_map: Dictionary = {
-		EVENT_HIT: VibrationController.PATTERN_LIGHT_IMPACT,
-		EVENT_ENHANCEMENT: VibrationController.PATTERN_ENHANCEMENT_SUCCESS,
-		EVENT_LEVEL_UP: VibrationController.PATTERN_LEVEL_UP,
-		EVENT_VICTORY: VibrationController.PATTERN_VICTORY,
+		EVENT_HIT: "Light Impact",
+		EVENT_ENHANCEMENT: "Enhancement Success",
+		EVENT_LEVEL_UP: "Level Up",
+		EVENT_VICTORY: "Victory",
 	}
 	return pattern_map.get(event_name, "")
 

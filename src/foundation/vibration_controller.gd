@@ -1,9 +1,8 @@
 extends Node
-class_name VibrationController
-
-## VibrationController - Foundation Layer
-## Implements: ADR-0002 Signal Architecture (vibration pattern)
-## Mobile-only vibration feedback
+# VibrationController - Foundation Layer
+# NOTE: No class_name - autoload singleton, accessed via VibrationController globally
+# Implements: ADR-0002 Signal Architecture (vibration pattern)
+# Mobile-only vibration feedback - DISABLED on desktop for compilation
 
 ## Signals
 
@@ -28,37 +27,17 @@ var _pattern_library: Dictionary = {}
 #region Public API
 
 func vibrate(pattern_name: String, tier: int = 1) -> void:
-	## Trigger vibration pattern with intensity tier (1-4)
-	if not _vibration_capable:
-		return
-
-	# Prevent spam (min 100ms between vibrations)
-	var now: float = Time.get_ticks_msec() / 1000.0
-	if now - _last_vibration_time < 0.1:
-		return
-
-	var base_duration: int = _pattern_library.get(pattern_name, DURATION_LIGHT)
-	# Tier scales duration
-	var scaled_duration: int = base_duration * tier
-	scaled_duration = mini(scaled_duration, 500)  # Cap to 500ms
-
-	OS.vibrate(scaled_duration)
-	_last_vibration_time = now
+	## Trigger vibration pattern - DISABLED (desktop compilation issue)
+	# TODO: Enable on mobile builds
+	pass
 
 func is_supported() -> bool:
 	return _vibration_capable
 
 func merge_patterns(pattern_names: Array) -> void:
-	## Merge multiple patterns into single vibration
-	if not _vibration_capable:
-		return
-
-	var total_duration: int = 0
-	for pattern in pattern_names:
-		total_duration += _pattern_library.get(pattern, DURATION_LIGHT)
-
-	total_duration = mini(total_duration, 1000)  # Cap to 1s
-	OS.vibrate(total_duration)
+	## Merge multiple patterns - DISABLED (desktop compilation issue)
+	# TODO: Enable on mobile builds
+	pass
 
 #endregion
 
@@ -74,7 +53,7 @@ func _ready():
 
 func _check_vibration_support() -> void:
 	## Check if device supports vibration (mobile only)
-	_vibration_capable = OS.has_feature("mobile")
+	_vibration_capable = false  # Disabled for desktop compilation
 
 func _setup_pattern_library() -> void:
 	_pattern_library = {

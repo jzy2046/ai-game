@@ -1,7 +1,6 @@
 extends Node
-class_name TimeTracker
-
-## TimeTracker - Core Layer
+# TimeTracker - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via TimeTracker globally
 ## Implements: ADR-0010 Offline Yield Capping (time detection)
 ## TR IDs: TR-offline-001, TR-offline-002
 
@@ -27,7 +26,7 @@ func get_session_duration() -> float:
 
 func get_offline_duration() -> float:
 	## Returns seconds since last save (capped to MAX_ALLOWED_OFFLINE)
-	var current_system_time: int = OS.get_system_time_msecs()
+	var current_system_time: int = Time.get_ticks_msec()
 	var raw_offline_ms: int = current_system_time - _last_save_time
 	var raw_offline_seconds: float = raw_offline_ms / 1000.0
 
@@ -68,7 +67,7 @@ func get_state() -> Dictionary:
 
 func set_state(state: Dictionary) -> void:
 	_session_start = state.get("session_start", Time.get_ticks_usec())
-	_last_save_time = state.get("last_save", OS.get_system_time_msecs())
+	_last_save_time = state.get("last_save", Time.get_ticks_msec())
 	_anomaly_log = state.get("anomalies", [])
 
 #endregion

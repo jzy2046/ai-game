@@ -1,7 +1,6 @@
 extends Node
-class_name ParticlePool
-
-## ParticlePool - Foundation Layer
+# ParticlePool - Foundation Layer
+# NOTE: No class_name - autoload singleton, accessed via ParticlePool globally
 ## Implements: ADR-0003 Particle System Pooling
 ## TR IDs: TR-particle-001, TR-particle-002, TR-particle-003
 

@@ -1,9 +1,8 @@
 extends Node
-class_name CombatEngine
-
-## CombatEngine - Feature Layer
-## Implements: ADR-0007 Combat Loop Architecture
-## TR IDs: TR-combat-001, TR-combat-002, TR-combat-003
+# CombatEngine - Feature Layer
+# NOTE: No class_name - autoload singleton, accessed via CombatEngine globally
+# Implements: ADR-0007 Combat Loop Architecture
+# TR IDs: TR-combat-001, TR-combat-002, TR-combat-003
 
 ## Signals
 signal battle_started(enemy_data: Dictionary)
@@ -29,13 +28,17 @@ var _hit_timer: Timer
 var _enemy: Dictionary = {}
 var _player_stats: Dictionary = {}
 var _rng: RandomNumberGenerator
+# Cached autoload references
+var _equipment_manager: Node = null
+var _enemy_controller: Node = null
 
 #region Public API
 
 func start_battle(enemy_data: Dictionary) -> void:
 	## Initialize combat with enemy
 	_enemy = enemy_data
-	_player_stats = EquipmentManager.get_total_stats()
+	if _equipment_manager and _equipment_manager.has_method("get_total_stats"):
+		_player_stats = _equipment_manager.get_total_stats()
 	_state = CombatState.COMBAT
 
 	_hit_timer.start()
@@ -71,6 +74,10 @@ func calculate_damage(attacker_stats: Dictionary, defender_stats: Dictionary) ->
 #region Lifecycle
 
 func _ready():
+	# Cache autoload references
+	_equipment_manager = get_node("/root/EquipmentManager")
+	_enemy_controller = get_node("/root/EnemyController")
+
 	_hit_timer = Timer.new()
 	_hit_timer.wait_time = HIT_INTERVAL
 	_hit_timer.one_shot = false
@@ -94,7 +101,8 @@ func _on_hit_timer() -> void:
 	emit_signal("damage_dealt", damage, _enemy.id)
 	emit_signal("enemy_health_changed", _enemy.id, _enemy.current_hp)
 
-	EnemyController.apply_damage(_enemy.id, damage)
+	if _enemy_controller and _enemy_controller.has_method("apply_damage"):
+		_enemy_controller.apply_damage(_enemy.id, damage)
 
 	if _enemy.current_hp <= 0:
 		_end_battle(CombatState.VICTORY)
@@ -107,7 +115,8 @@ func _process_skip_batch(remaining_hits: int) -> void:
 		_enemy.current_hp -= damage
 		emit_signal("damage_dealt", damage, _enemy.id)
 
-	EnemyController.apply_damage(_enemy.id, 0)  # Sync state
+	if _enemy_controller and _enemy_controller.has_method("apply_damage"):
+		_enemy_controller.apply_damage(_enemy.id, 0)  # Sync state
 
 	if _enemy.current_hp <= 0:
 		_end_battle(CombatState.VICTORY)
@@ -125,8 +134,9 @@ func _end_battle(final_state: CombatState) -> void:
 	_hit_timer.stop()
 
 	if final_state == CombatState.VICTORY:
-		var rewards: Dictionary = EnemyController.get_rewards(_enemy.id)
-		emit_signal("battle_victory", _enemy.id, rewards)
+		if _enemy_controller and _enemy_controller.has_method("get_rewards"):
+			var rewards: Dictionary = _enemy_controller.get_rewards(_enemy.id)
+			emit_signal("battle_victory", _enemy.id, rewards)
 
 func _calc_base_damage() -> int:
 	## Calculate average damage without variance

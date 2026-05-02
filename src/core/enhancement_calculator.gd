@@ -1,10 +1,8 @@
-extends Node
 class_name EnhancementCalculator
-
 ## EnhancementCalculator - Core Layer (Static)
 ## Implements: ADR-0009 Enhancement Formula Implementation
 ## TR IDs: TR-enhance-001, TR-enhance-002
-## Pure math - no state
+## Pure math - no state, no extends Node - static utility class
 
 ## Constants
 const MAX_ENHANCEMENT_LEVEL: int = 10

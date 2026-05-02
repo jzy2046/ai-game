@@ -1,104 +1,92 @@
 extends Control
-class_name DropHandler
-
-## DropHandler - Feature Layer
-## Implements post-combat drop display and collection
+# DropHandler - Feature Layer
+# NOTE: No class_name - autoload singleton, accessed via DropHandler globally
+# Implements post-combat drop display and collection
 
 ## Signals
 signal drops_collected(drops: Array)
 
 ## State
-var _drop_panel: Control
 var _pending_drops: Array = []
-var _selected_indices: Array = []
+var _current_drop: Dictionary = {}
+# Cached autoload references
+var _item_registry: Node = null
+var _equipment_manager: Node = null
+var _touch_router: Node = null
 
 #region Public API
 
-func display_drops(drops: Array) -> void:
-	## Show drop panel with equipment comparison
-	_pending_drops = drops
-	_selected_indices.clear()
+func show_drops(drops: Dictionary) -> void:
+	## Display drop panel with rewards
+	_pending_drops = []
 
-	if _drop_panel == null:
-		_create_drop_panel()
+	# Process gold
+	var gold: int = drops.get("gold", 0)
+	if gold > 0:
+		_pending_drops.append({type = "gold", amount = gold})
 
-	_drop_panel.visible = true
-	TouchRouter.push_modal(self)
+	# Process materials
+	var materials: Dictionary = drops.get("materials", {})
+	for material_id in materials:
+		var amount: int = materials[material_id]
+		_pending_drops.append({type = "material", id = material_id, amount = amount})
 
-	# Populate drop items
-	_populate_drop_panel()
+	# Process equipment
+	var equipment: Array = drops.get("equipment", [])
+	for equipment_id in equipment:
+		if _item_registry and _item_registry.has_method("get_equipment"):
+			var equipment_def: Dictionary = _item_registry.get_equipment(equipment_id)
+			_pending_drops.append({type = "equipment", id = equipment_id, def = equipment_def})
 
-func collect_selected() -> void:
-	## Award selected items to player
-	if _selected_indices.is_empty():
-		# Auto-select all if none selected
-		for i in range(_pending_drops.size()):
-			_selected_indices.append(i)
+	# Show first drop
+	_show_next_drop()
 
-	var collected: Array = []
-	for index in _selected_indices:
-		if index < _pending_drops.size():
-			var drop: Dictionary = _pending_drops[index]
-			collected.append(drop)
+func collect_all() -> void:
+	## Collect all pending drops
+	for drop in _pending_drops:
+		_collect_drop(drop)
 
-			# Award to equipment manager (auto-equip if slot empty)
-			var equipment_id: String = drop.equipment_id
-			var equipment_def: Dictionary = ItemRegistry.get_equipment(equipment_id)
-			var slot: int = equipment_def.get("slot", 0)
-
-			if EquipmentManager.get_equipped(slot).is_empty():
-				EquipmentManager.equip(slot, equipment_id)
-			# Else: item stored in inventory (post-MVP feature)
-
-	emit_signal("drops_collected", collected)
-
-	# Close panel
-	hide_drops()
-
-func hide_drops() -> void:
-	_drop_panel.visible = false
-	TouchRouter.pop_modal()
 	_pending_drops.clear()
+	emit_signal("drops_collected", _pending_drops)
+	hide()
+
+#endregion
+
+#region Lifecycle
+
+func _ready():
+	# Cache autoload references
+	_item_registry = get_node("/root/ItemRegistry")
+	_equipment_manager = get_node("/root/EquipmentManager")
+	_touch_router = get_node("/root/TouchRouter")
+	hide()
 
 #endregion
 
 #region Internal
 
-func _create_drop_panel() -> void:
-	_drop_panel = Control.new()
-	_drop_panel.name = "DropPanel"
-	_drop_panel.size = Vector2(600, 400)
-	_drop_panel.position = Vector2(60, 400)
-	add_child(_drop_panel)
+func _show_next_drop() -> void:
+	if _pending_drops.size() == 0:
+		hide()
+		return
 
-	# MVP: Simple panel with text labels
-	var label := Label.new()
-	label.name = "DropTitle"
-	label.text = "Equipment Drops"
-	label.position = Vector2(200, 20)
-	_drop_panel.add_child(label)
+	_current_drop = _pending_drops[0]
+	# MVP: Just collect immediately
+	_collect_drop(_current_drop)
+	_pending_drops.remove_at(0)
+	_show_next_drop()
 
-func _populate_drop_panel() -> void:
-	## Fill panel with drop items
-	# MVP: Simple text display
-	var y_offset: int = 60
-	for i in range(_pending_drops.size()):
-		var drop: Dictionary = _pending_drops[i]
-		var equipment_id: String = drop.equipment_id
-		var equipment_def: Dictionary = ItemRegistry.get_equipment(equipment_id)
+func _collect_drop(drop: Dictionary) -> void:
+	var drop_type: String = drop.get("type", "")
 
-		var label := Label.new()
-		label.text = "%s (Rarity %d)" % [equipment_def.get("name", "Unknown"), drop.rarity]
-		label.position = Vector2(50, y_offset)
-		_drop_panel.add_child(label)
-
-		y_offset += 30
-
-	# Collect button
-	var button := Button.new()
-	button.text = "Collect"
-	button.position = Vector2(200, y_offset + 20)
-	button.pressed.connect(collect_selected)
-	_drop_panel.add_child(button)
+	if drop_type == "equipment":
+		var equipment_id: String = drop.get("id", "")
+		# Find empty slot
+		if _equipment_manager and _equipment_manager.has_method("get_equipped"):
+			for slot in range(6):
+				if _equipment_manager.get_equipped(slot).is_empty():
+					if _equipment_manager.has_method("equip"):
+						_equipment_manager.equip(slot, equipment_id)
+					break
 
 #endregion

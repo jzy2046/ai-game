@@ -1,7 +1,6 @@
 extends Node
-class_name GoldVault
-
-## GoldVault - Core Layer
+# GoldVault - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via GoldVault globally
 ## Implements unlimited gold stack management
 
 ## Signals

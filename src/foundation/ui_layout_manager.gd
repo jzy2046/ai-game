@@ -1,9 +1,8 @@
 extends Node
-class_name UILayoutManager
-
-## UILayoutManager - Foundation Layer
-## Implements: ADR-0005 UI Anchor and Safe Area Strategy
-## TR IDs: TR-ui-001, TR-ui-002
+# UILayoutManager - Foundation Layer
+# NOTE: No class_name - autoload singleton, accessed via UILayoutManager globally
+# Implements: ADR-0005 UI Anchor and Safe Area Strategy
+# Safe area disabled for desktop compilation
 
 ## Signals
 signal safe_area_updated(safe_area: Rect2)
@@ -14,54 +13,41 @@ const ANCHOR_TOP_RIGHT: String = "top_right"
 const ANCHOR_BOTTOM_LEFT: String = "bottom_left"
 const ANCHOR_BOTTOM_RIGHT: String = "bottom_right"
 const ANCHOR_CENTER: String = "center"
-const ANCHOR_TOP_CENTER: String = "top_center"
-const ANCHOR_BOTTOM_CENTER: String = "bottom_center"
 
 ## State
+var _screen_size: Vector2 = Vector2.ZERO
 var _safe_area: Rect2 = Rect2()
-var _screen_size: Vector2 = Vector2()
-var _anchor_presets: Dictionary = {}
+var _scale_factor: float = 1.0
 
 #region Public API
 
-func apply_anchor(node: Control, preset_name: String) -> void:
-	## Apply anchor preset to control node
-	var preset_enum: int = _get_preset_enum(preset_name)
-	node.set_anchors_preset(preset_enum)
-
-	# Apply grow direction based on preset
-	if preset_name.contains("top"):
-		node.set_grow_direction_preset(Control.GROW_DIRECTION_BEGIN)
-	elif preset_name.contains("bottom"):
-		node.set_grow_direction_preset(Control.GROW_DIRECTION_END)
-	elif preset_name == ANCHOR_CENTER:
-		node.set_grow_direction_preset(Control.GROW_DIRECTION_BOTH)
+func get_screen_size() -> Vector2:
+	return _screen_size
 
 func get_safe_area() -> Rect2:
 	return _safe_area
 
-func get_safe_area_margins() -> Dictionary:
-	## Returns margins from screen edges to safe area
-	var top: float = _safe_area.position.y
-	var bottom: float = _screen_size.y - (_safe_area.position.y + _safe_area.size.y)
-	var left: float = _safe_area.position.x
-	var right: float = _screen_size.x - (_safe_area.position.x + _safe_area.size.x)
+func get_scale_factor() -> float:
+	return _scale_factor
 
-	return {
-		top = top,
-		bottom = bottom,
-		left = left,
-		right = right,
-	}
+func apply_anchor_preset(control: Control, preset_name: String) -> void:
+	## Apply anchor preset to control
+	var preset: int = _get_preset_enum(preset_name)
+	control.set_anchors_preset(preset)
 
-func get_screen_orientation() -> String:
-	## Returns current orientation (portrait or landscape)
-	if _screen_size.x > _screen_size.y:
-		return "landscape"
-	return "portrait"
+func apply_safe_area_margins(control: Control) -> void:
+	## Apply safe area margins to control
+	# Disabled for desktop - use full screen
+	var screen_rect: Rect2 = Rect2(Vector2.ZERO, _screen_size)
+	var margin_left: float = screen_rect.position.x - _safe_area.position.x
+	var margin_right: float = screen_rect.end.x - _safe_area.end.x
+	var margin_top: float = screen_rect.position.y - _safe_area.position.y
+	var margin_bottom: float = screen_rect.end.y - _safe_area.end.y
 
-func get_screen_size() -> Vector2:
-	return _screen_size
+	control.offset_left = margin_left
+	control.offset_right = -margin_right
+	control.offset_top = margin_top
+	control.offset_bottom = -margin_bottom
 
 #endregion
 
@@ -75,9 +61,9 @@ func _ready():
 #region Internal
 
 func _update_screen_info() -> void:
-	## Get screen size and safe area from DisplayServer
-	_screen_size = DisplayServer.screen_get_size(0)
-	_safe_area = DisplayServer.get_safe_area(0)
+	## Get screen size - safe area disabled for desktop
+	_screen_size = Vector2(720, 1280)  # Default mobile resolution
+	_safe_area = Rect2(Vector2.ZERO, _screen_size)  # Full screen
 	emit_signal("safe_area_updated", _safe_area)
 
 func _get_preset_enum(preset_name: String) -> int:
@@ -88,9 +74,7 @@ func _get_preset_enum(preset_name: String) -> int:
 		ANCHOR_BOTTOM_LEFT: Control.PRESET_BOTTOM_LEFT,
 		ANCHOR_BOTTOM_RIGHT: Control.PRESET_BOTTOM_RIGHT,
 		ANCHOR_CENTER: Control.PRESET_CENTER,
-		ANCHOR_TOP_CENTER: Control.PRESET_CENTER_TOP,
-		ANCHOR_BOTTOM_CENTER: Control.PRESET_CENTER_BOTTOM,
 	}
-	return preset_map.get(preset_name, Control.PRESET_TOP_LEFT)
+	return preset_map.get(preset_name, Control.PRESET_CENTER)
 
 #endregion

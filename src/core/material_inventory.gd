@@ -1,7 +1,6 @@
 extends Node
-class_name MaterialInventory
-
-## MaterialInventory - Core Layer
+# MaterialInventory - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via MaterialInventory globally
 ## Implements material stack management
 ## Depends on: ItemRegistry, SaveManager
 
@@ -18,20 +17,21 @@ var _overflow_log: Array = []
 
 #region Public API
 
-func get_stack(material_id: String) -> int:
+func get_stack_count(material_id: String) -> int:
 	## Returns current stack count for material
 	return _material_stacks.get(material_id, 0)
 
 func add_material(material_id: String, count: int) -> int:
 	## Add materials, cap to max_stack, return new stack
 	if count <= 0:
-		return get_stack(material_id)
+		return get_stack_count(material_id)
 
-	# Get max stack from ItemRegistry
-	var material_def: Dictionary = ItemRegistry.get_material(material_id)
+	# Get max stack from ItemRegistry (access via get_node for autoload)
+	var item_registry: Node = get_node("/root/ItemRegistry")
+	var material_def: Dictionary = item_registry.get_material(material_id) if item_registry else {}
 	var max_stack: int = material_def.get("max_stack", 999)
 
-	var current: int = get_stack(material_id)
+	var current: int = get_stack_count(material_id)
 	var new_stack: int = current + count
 
 	# Check overflow
@@ -49,7 +49,7 @@ func can_remove_bulk(requirements: Dictionary) -> bool:
 	## Check if all materials have sufficient stacks
 	for material_id in requirements:
 		var required: int = requirements[material_id]
-		var available: int = get_stack(material_id)
+		var available: int = get_stack_count(material_id)
 		if available < required:
 			return false
 	return true
@@ -61,7 +61,7 @@ func remove_bulk(requirements: Dictionary) -> bool:
 
 	for material_id in requirements:
 		var required: int = requirements[material_id]
-		var current: int = get_stack(material_id)
+		var current: int = get_stack_count(material_id)
 		var new_stack: int = current - required
 		_material_stacks[material_id] = new_stack
 		emit_signal("material_changed", material_id, new_stack)
@@ -80,7 +80,9 @@ func set_all_stacks(stacks: Dictionary) -> void:
 
 func _ready():
 	# Initialize empty stacks for all materials
-	for material_id in ItemRegistry.get_all_material_ids():
-		_material_stacks[material_id] = 0
+	var item_registry: Node = get_node("/root/ItemRegistry")
+	if item_registry and item_registry.has_method("get_all_material_ids"):
+		for material_id in item_registry.get_all_material_ids():
+			_material_stacks[material_id] = 0
 
 #endregion

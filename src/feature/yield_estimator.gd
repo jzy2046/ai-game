@@ -1,9 +1,7 @@
-extends Node
 class_name YieldEstimator
-
 ## YieldEstimator - Feature Layer (Static)
 ## Implements offline yield calculation
-## Pure math - no state
+## Pure math - no state, no extends Node - static utility class
 
 ## Constants
 const GOLD_PER_SECOND: float = 10.0

@@ -1,9 +1,8 @@
 extends Control
-class_name StatHUD
-
-## StatHUD - Core Layer
-## Implements stat display and comparison
-## Depends on: ItemRegistry, GoldVault
+# StatHUD - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via StatHUD globally
+# Implements stat display and comparison
+# Depends on: ItemRegistry, GoldVault
 
 ## Signals
 
@@ -12,6 +11,7 @@ var _stat_labels: Dictionary = {}
 var _gold_label: Label
 var _comparison_panel: Control
 var _last_stats: Dictionary = {}
+var _gold_vault: Node = null  # Cached reference
 
 #region Public API
 
@@ -35,8 +35,8 @@ func update_stats(stats: Dictionary) -> void:
 		label.text = str(stats.get("power", 0))
 
 	# Update gold
-	if _gold_label:
-		_gold_label.text = str(GoldVault.get_gold())
+	if _gold_label and _gold_vault and _gold_vault.has_method("get_gold"):
+		_gold_label.text = str(_gold_vault.get_gold())
 
 func show_comparison(new_stats: Dictionary) -> void:
 	## Display comparison panel with +N/-N indicators
@@ -69,6 +69,8 @@ func hide_comparison() -> void:
 #region Lifecycle
 
 func _ready():
+	# Cache GoldVault reference
+	_gold_vault = get_node("/root/GoldVault")
 	# Get labels from scene tree (will be created in main.tscn)
 	# MVP: Create minimal labels dynamically if not in scene
 	_setup_labels()

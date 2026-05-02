@@ -1,7 +1,6 @@
 extends Node
-class_name ItemRegistry
-
-## ItemRegistry - Core Layer
+# ItemRegistry - Core Layer
+# NOTE: No class_name - autoload singleton, accessed via ItemRegistry globally
 ## Implements: ADR-0011 Item Registry Ownership Model
 ## TR IDs: TR-regist-001
 

@@ -1,9 +1,8 @@
 extends Node
-class_name SaveManager
-
-## SaveManager - Foundation Layer
-## Implements: ADR-0001 Save System Architecture
-## TR IDs: TR-save-001 through TR-save-005, TR-fileaccess-001
+# SaveManager - Foundation Layer
+# Implements: ADR-0001 Save System Architecture
+# TR IDs: TR-save-001 through TR-save-005, TR-fileaccess-001
+# NOTE: No class_name - autoload singleton, accessed via SaveManager globally
 
 ## Signals
 signal save_completed(checksum: String)
@@ -158,7 +157,7 @@ func _initialize_default_state() -> void:
 		saved_at = Time.get_unix_time_from_system(),
 		time = {
 			session_start = Time.get_ticks_usec(),
-			last_save = OS.get_system_time_msecs(),
+			last_save = Time.get_ticks_msec(),
 		},
 		gold = 0,
 		materials = {},
@@ -176,18 +175,25 @@ func _initialize_default_state() -> void:
 	}
 
 func _collect_state() -> Dictionary:
-	## Collect state from all registered modules
-	# This will be populated once modules are implemented
+	## Collect state from all registered autoloads
+	# Autoloads are always available - no null check needed
 	var state := {
 		version = SAVE_VERSION,
 		saved_at = Time.get_unix_time_from_system(),
-		time = TimeTracker.get_state() if TimeTracker else {},
-		gold = GoldVault.get_gold() if GoldVault else 0,
-		materials = MaterialInventory.get_all_stacks() if MaterialInventory else {},
-		equipment = EquipmentManager.get_all_equipped() if EquipmentManager else {},
-		dungeon = DungeonProgress.get_state() if DungeonProgress else {},
-		enemies = EnemyController.get_state() if EnemyController else {},
 	}
+	# Access autoloads via get_node("/root/AutoloadName") for safety
+	if has_node("/root/TimeTracker"):
+		state["time"] = get_node("/root/TimeTracker").get_state()
+	if has_node("/root/GoldVault"):
+		state["gold"] = get_node("/root/GoldVault").get_gold()
+	if has_node("/root/MaterialInventory"):
+		state["materials"] = get_node("/root/MaterialInventory").get_all_stacks()
+	if has_node("/root/EquipmentManager"):
+		state["equipment"] = get_node("/root/EquipmentManager").get_all_equipped()
+	if has_node("/root/DungeonProgress"):
+		state["dungeon"] = get_node("/root/DungeonProgress").get_state()
+	if has_node("/root/EnemyController"):
+		state["enemies"] = get_node("/root/EnemyController").get_state()
 	return state
 
 func _validate_checksum(json_text: String) -> bool:
@@ -204,9 +210,9 @@ func _validate_checksum(json_text: String) -> bool:
 	return calculated == stored_checksum
 
 func _calculate_checksum(text: String) -> String:
-	## SHA-256 checksum
-	var ctx := SHA256Context.new()
-	ctx.start()
+	## SHA-256 checksum using HashingContext
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
 	ctx.update(text.to_utf8_buffer())
 	var digest: PackedByteArray = ctx.finish()
 	return digest.hex_encode()
