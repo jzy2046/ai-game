@@ -1,0 +1,82 @@
+{
+	"weapon_sword_001": {
+		"id": "weapon_sword_001",
+		"name": "Iron Sword",
+		"slot": 0,
+		"rarity": 0,
+		"base_attack": 50,
+		"base_defense": 0,
+		"base_power": 50,
+		"icon": "res://assets/icons/weapon_sword.png"
+	},
+	"weapon_sword_002": {
+		"id": "weapon_sword_002",
+		"name": "Steel Sword",
+		"slot": 0,
+		"rarity": 1,
+		"base_attack": 75,
+		"base_defense": 0,
+		"base_power": 75,
+		"icon": "res://assets/icons/weapon_sword.png"
+	},
+	"weapon_sword_003": {
+		"id": "weapon_sword_003",
+		"name": "Mithril Sword",
+		"slot": 0,
+		"rarity": 2,
+		"base_attack": 100,
+		"base_defense": 0,
+		"base_power": 100,
+		"icon": "res://assets/icons/weapon_sword.png"
+	},
+	"armor_helm_001": {
+		"id": "armor_helm_001",
+		"name": "Iron Helm",
+		"slot": 1,
+		"rarity": 0,
+		"base_attack": 0,
+		"base_defense": 30,
+		"base_power": 30,
+		"icon": "res://assets/icons/armor_helm.png"
+	},
+	"armor_chest_001": {
+		"id": "armor_chest_001",
+		"name": "Iron Chestplate",
+		"slot": 2,
+		"rarity": 0,
+		"base_attack": 0,
+		"base_defense": 50,
+		"base_power": 50,
+		"icon": "res://assets/icons/armor_chest.png"
+	},
+	"armor_gloves_001": {
+		"id": "armor_gloves_001",
+		"name": "Iron Gloves",
+		"slot": 3,
+		"rarity": 0,
+		"base_attack": 0,
+		"base_defense": 20,
+		"base_power": 20,
+		"icon": "res://assets/icons/armor_gloves.png"
+	},
+	"armor_boots_001": {
+		"id": "armor_boots_001",
+		"name": "Iron Boots",
+		"slot": 4,
+		"rarity": 0,
+		"base_attack": 0,
+		"base_defense": 25,
+		"base_power": 25,
+		"icon": "res://assets/icons/armor_boots.png"
+	},
+	"accessory_ring_001": {
+		"id": "accessory_ring_001",
+		"name": "Copper Ring",
+		"slot": 5,
+		"rarity": 0,
+		"base_attack": 10,
+		"base_defense": 10,
+		"base_power": 20,
+		"icon": "res://assets/icons/accessory_ring.png"
+	}
+}

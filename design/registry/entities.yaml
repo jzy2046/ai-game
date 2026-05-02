@@ -139,7 +139,357 @@ formulas: []
 #
 # Required fields: name, status, source, referenced_by, value, unit, added
 
-constants: []
+constants:
+  - name: design_base_width
+    status: active
+    source: design/gdd/ui-layout-system.md
+    referenced_by:
+      - design/gdd/ui-layout-system.md
+    value: 1080
+    unit: px
+    added: 2026-05-01
+    revised: ""
+
+  - name: max_gameplay_ratio
+    status: active
+    source: design/gdd/ui-layout-system.md
+    referenced_by:
+      - design/gdd/ui-layout-system.md
+    value: 0.85
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: min_touch_target_ios
+    status: active
+    source: design/gdd/ui-layout-system.md
+    referenced_by:
+      - design/gdd/ui-layout-system.md
+    value: 44
+    unit: pt
+    added: 2026-05-01
+    revised: ""
+
+  - name: min_touch_target_android
+    status: active
+    source: design/gdd/ui-layout-system.md
+    referenced_by:
+      - design/gdd/ui-layout-system.md
+    value: 48
+    unit: dp
+    added: 2026-05-01
+    revised: ""
+
+  - name: base_power
+    status: active
+    source: design/gdd/dungeon-structure-system.md
+    referenced_by:
+      - design/gdd/dungeon-structure-system.md
+    value: 100
+    unit: 战力点
+    added: 2026-05-01
+    revised: ""
+
+  - name: power_increment
+    status: active
+    source: design/gdd/dungeon-structure-system.md
+    referenced_by:
+      - design/gdd/dungeon-structure-system.md
+    value: 50
+    unit: 战力点
+    added: 2026-05-01
+    revised: ""
+
+  - name: max_floor_count
+    status: active
+    source: design/gdd/dungeon-structure-system.md
+    referenced_by:
+      - design/gdd/dungeon-structure-system.md
+    value: 10
+    unit: 层级
+    added: 2026-05-01
+    revised: ""
+
+  - name: count_step
+    status: active
+    source: design/gdd/dungeon-structure-system.md
+    referenced_by:
+      - design/gdd/dungeon-structure-system.md
+    value: 3
+    unit: 层级
+    added: 2026-05-01
+    revised: ""
+
+  - name: base_time
+    status: active
+    source: design/gdd/dungeon-structure-system.md
+    referenced_by:
+      - design/gdd/dungeon-structure-system.md
+    value: 2.0
+    unit: 秒
+    added: 2026-05-01
+    revised: ""
+
+  - name: per_enemy_time
+    status: active
+    source: design/gdd/dungeon-structure-system.md
+    referenced_by:
+      - design/gdd/dungeon-structure-system.md
+      - design/gdd/enemy-system.md
+    value: 5.0
+    unit: 秒
+    added: 2026-05-01
+    revised: ""
+
+  - name: HEALTH_POWER_WEIGHT
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 0.5
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: ATTACK_POWER_WEIGHT
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 3.0
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: DEFENSE_POWER_WEIGHT
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 2.0
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: SCALING_FACTOR
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 0.15
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: HITS_PER_SECOND
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 2.0
+    unit: hits/sec
+    added: 2026-05-01
+    revised: ""
+
+  - name: MIN_POWER_RATING
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 100
+    unit: 战力点
+    added: 2026-05-01
+    revised: ""
+
+  - name: MAX_POWER_RATING
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 550
+    unit: 战力点
+    added: 2026-05-01
+    revised: ""
+
+  - name: SPAWN_ANIMATION_DURATION
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+    value: 0.3
+    unit: 秒
+    added: 2026-05-01
+    revised: ""
+
+  - name: DEFEAT_ANIMATION_DURATION
+    status: active
+    source: design/gdd/enemy-system.md
+    referenced_by:
+      - design/gdd/enemy-system.md
+      - design/gdd/combat-system.md
+    value: 0.5
+    unit: 秒
+    added: 2026-05-01
+    revised: ""
+
+  - name: ATTACK_VARIANCE_FACTOR
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 1.0
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: RANDOM_DAMAGE_MIN
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 0.9
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: RANDOM_DAMAGE_MAX
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 1.1
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: SKIP_ANIMATION_DURATION
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 0.3
+    unit: 秒
+    added: 2026-05-01
+    revised: ""
+
+  - name: VICTORY_DELAY
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 0.5
+    unit: 秒
+    added: 2026-05-01
+    revised: ""
+
+  - name: TOTAL_SLOT_COUNT
+    status: active
+    source: design/gdd/equipment-slot-system.md
+    referenced_by:
+      - design/gdd/equipment-slot-system.md
+    value: 6
+    unit: slots
+    added: 2026-05-01
+    revised: ""
+
+  - name: BASE_GOLD_COST
+    status: active
+    source: design/gdd/enhancement-formula-system.md
+    referenced_by:
+      - design/gdd/enhancement-formula-system.md
+    value: 100
+    unit: gold
+    added: 2026-05-01
+    revised: ""
+
+  - name: BASE_MATERIAL_COST
+    status: active
+    source: design/gdd/enhancement-formula-system.md
+    referenced_by:
+      - design/gdd/enhancement-formula-system.md
+    value: 1
+    unit: stones
+    added: 2026-05-01
+    revised: ""
+
+  - name: MATERIAL_LEVEL_MULTIPLIER
+    status: active
+    source: design/gdd/enhancement-formula-system.md
+    referenced_by:
+      - design/gdd/enhancement-formula-system.md
+    value: 1.0
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: MAX_ENHANCEMENT_LEVEL
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      - design/gdd/enhancement-formula-system.md
+    value: 10
+    unit: levels
+    added: 2026-05-01
+    revised: ""
+
+  - name: ENHANCEMENT_ATTACK_MULTIPLIER
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      - design/gdd/enhancement-formula-system.md
+    value: 0.1
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: ENHANCEMENT_DEFENSE_MULTIPLIER
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      - design/gdd/enhancement-formula-system.md
+    value: 0.1
+    unit: ratio
+    added: 2026-05-01
+    revised: ""
+
+  - name: MAX_ALLOWED_OFFLINE
+    status: active
+    source: design/gdd/time-tracking-system.md
+    referenced_by:
+      - design/gdd/time-tracking-system.md
+      - design/gdd/yield-calculation-system.md
+      - design/gdd/save-system.md
+      - design/gdd/offline-yield-system.md
+    value: 86400
+    unit: 秒
+    added: 2026-05-02
+    revised: ""
+
+  - name: MAX_FORWARD_JUMP
+    status: active
+    source: design/gdd/time-tracking-system.md
+    referenced_by:
+      - design/gdd/time-tracking-system.md
+      - design/gdd/save-system.md
+      - design/gdd/offline-yield-system.md
+    value: 604800
+    unit: 秒
+    added: 2026-05-02
+    revised: ""
+
+  - name: MAX_OFFLINE_MATERIAL_STACK
+    status: active
+    source: design/gdd/yield-calculation-system.md
+    referenced_by:
+      - design/gdd/yield-calculation-system.md
+      - design/gdd/offline-yield-system.md
+    value: 500
+    unit: stones
+    added: 2026-05-02
+    revised: ""
 
 # Example:
 #

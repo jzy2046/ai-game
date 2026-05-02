@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Godot test runner placeholder
+      # Real test execution will be configured after engine setup
+      - name: Test Framework Check
+        run: |
+          echo "Test framework placeholder - real tests will run during Production"
+          test -d tests/unit && echo "Unit test directory exists"
+          test -d tests/integration && echo "Integration test directory exists"
+          test -f tests/unit/test_framework_example.gd && echo "Example test file exists"
+
+      # Future: Add Godot headless test runner
+      # - name: Run Godot Tests
+      #   uses: game-ci/godot-test-runner@v2
+      #   with:
+      #     version: 4.6
+      #     test-project: .

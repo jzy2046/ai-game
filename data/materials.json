@@ -1,0 +1,23 @@
+{
+	"enhancement_stone": {
+		"id": "enhancement_stone",
+		"name": "Enhancement Stone",
+		"stackable": true,
+		"max_stack": 999,
+		"rarity": 0
+	},
+	"crystal_essence": {
+		"id": "crystal_essence",
+		"name": "Crystal Essence",
+		"stackable": true,
+		"max_stack": 200,
+		"rarity": 2
+	},
+	"celestial_shard": {
+		"id": "celestial_shard",
+		"name": "Celestial Shard",
+		"stackable": true,
+		"max_stack": 50,
+		"rarity": 3
+	}
+}

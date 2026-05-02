@@ -1,0 +1,173 @@
+[gd_scene load_steps=2 format=3 uid="uid://cmain_scene"]
+
+[ext_resource type="Script" path="res://src/core/stat_hud.gd" id="stat_hud"]
+[ext_resource type="Script" path="res://src/feature/offline_reward.gd" id="offline_reward"]
+[ext_resource type="Script" path="res://src/feature/drop_handler.gd" id="drop_handler"]
+[ext_resource type="Script" path="res://src/feature/enhancement_workflow.gd" id="enhancement_workflow"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size = Vector2(720, 1280)
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="HUDContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -200.0
+grow_vertical = 0
+
+[node name="StatHUD" type="Control" parent="HUDContainer"]
+layout_mode = 1
+script = ExtResource("stat_hud")
+
+[node name="GoldLabel" type="Label" parent="HUDContainer/StatHUD"]
+layout_mode = 1
+offset_left = 50.0
+offset_top = 0.0
+offset_right = 150.0
+offset_bottom = 30.0
+text = "0"
+
+[node name="AttackLabel" type="Label" parent="HUDContainer/StatHUD"]
+layout_mode = 1
+offset_left = 50.0
+offset_top = 40.0
+offset_right = 150.0
+offset_bottom = 70.0
+text = "ATK: 0"
+
+[node name="DefenseLabel" type="Label" parent="HUDContainer/StatHUD"]
+layout_mode = 1
+offset_left = 50.0
+offset_top = 80.0
+offset_right = 150.0
+offset_bottom = 110.0
+text = "DEF: 0"
+
+[node name="PowerLabel" type="Label" parent="HUDContainer/StatHUD"]
+layout_mode = 1
+offset_left = 50.0
+offset_top = 120.0
+offset_right = 150.0
+offset_bottom = 150.0
+text = "PWR: 0"
+
+[node name="FloorLabel" type="Label" parent="HUDContainer"]
+layout_mode = 1
+offset_left = 550.0
+offset_top = 0.0
+offset_right = 650.0
+offset_bottom = 30.0
+text = "Floor 1"
+
+[node name="EnemyArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EnemyNameLabel" type="Label" parent="EnemyArea"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_right = 100.0
+offset_bottom = 30.0
+grow_horizontal = 2
+text = "Enemy"
+horizontal_alignment = 1
+
+[node name="EnemyHPBar" type="ProgressBar" parent="EnemyArea"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+value = 100.0
+
+[node name="SkipButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -80.0
+offset_right = -30.0
+offset_bottom = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "Skip"
+
+[node name="EnhanceButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = -80.0
+offset_right = 150.0
+offset_bottom = -30.0
+grow_vertical = 0
+text = "Enhance"
+
+[node name="OfflineReward" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("offline_reward")
+
+[node name="DropHandler" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("drop_handler")
+
+[node name="EnhancementWorkflow" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("enhancement_workflow")
+
+[connection signal="pressed" from="SkipButton" to="CombatEngine" method="skip_battle"]
+[connection signal="pressed" from="EnhanceButton" to="EnhancementWorkflow" method="start_enhancement" binds= [0]]
