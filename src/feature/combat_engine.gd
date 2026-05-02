@@ -36,6 +36,10 @@ var _enemy_controller: Node = null
 
 func start_battle(enemy_data: Dictionary) -> void:
 	## Initialize combat with enemy
+	if _state != CombatState.IDLE:
+		push_warning("Cannot start battle while in state: %d" % _state)
+		return
+
 	_enemy = enemy_data
 	if _equipment_manager and _equipment_manager.has_method("get_total_stats"):
 		_player_stats = _equipment_manager.get_total_stats()
@@ -137,6 +141,9 @@ func _end_battle(final_state: CombatState) -> void:
 		if _enemy_controller and _enemy_controller.has_method("get_rewards"):
 			var rewards: Dictionary = _enemy_controller.get_rewards(_enemy.id)
 			emit_signal("battle_victory", _enemy.id, rewards)
+		# Reset to IDLE after brief delay for next battle
+		await get_tree().create_timer(0.3).timeout
+		_state = CombatState.IDLE
 
 func _calc_base_damage() -> int:
 	## Calculate average damage without variance

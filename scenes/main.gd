@@ -84,7 +84,7 @@ func _on_damage_dealt(damage: int, target_id: String):
 
 func _on_battle_victory(enemy_id: String, rewards: Dictionary):
 	_enemy_name_label.text = "Victory!"
-	await get_tree().create_timer(0.5).timeout
+	# DungeonDriver handles progression
 
 func _on_floor_changed(new_floor: int):
 	_floor_label.text = "Floor %d" % new_floor
