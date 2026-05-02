@@ -99,6 +99,10 @@ func _on_hit_timer() -> void:
 	if _state != CombatState.COMBAT:
 		return
 
+	# Safety check - enemy must have current_hp
+	if not _enemy.has("current_hp"):
+		return
+
 	var damage: int = calculate_damage(_player_stats, _enemy)
 	_enemy.current_hp -= damage
 
@@ -112,6 +116,10 @@ func _on_hit_timer() -> void:
 		_end_battle(CombatState.VICTORY)
 
 func _process_skip_batch(remaining_hits: int) -> void:
+	# Safety check
+	if not _enemy.has("current_hp"):
+		return
+
 	var batch_size: int = mini(SKIP_BATCH_SIZE, remaining_hits)
 
 	for i in range(batch_size):
@@ -138,10 +146,18 @@ func _end_battle(final_state: CombatState) -> void:
 	_hit_timer.stop()
 
 	if final_state == CombatState.VICTORY:
+		# Save enemy_id before clearing
+		var enemy_id: String = _enemy.get("id", "")
+		var rewards: Dictionary = {}
 		if _enemy_controller and _enemy_controller.has_method("get_rewards"):
-			var rewards: Dictionary = _enemy_controller.get_rewards(_enemy.id)
-			emit_signal("battle_victory", _enemy.id, rewards)
-		# Reset to IDLE after brief delay for next battle
+			rewards = _enemy_controller.get_rewards(enemy_id)
+		emit_signal("battle_victory", enemy_id, rewards)
+
+	# Clear enemy data
+	_enemy = {}
+
+	# Reset to IDLE after brief delay for next battle
+	if final_state == CombatState.VICTORY:
 		await get_tree().create_timer(0.3).timeout
 		_state = CombatState.IDLE
 
