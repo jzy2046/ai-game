@@ -1,0 +1,24 @@
+# GUT Configuration
+# Run tests: godot4 --headless --quit-after 10 --script res://addons/gut/gut_cmdln.gd
+
+extends Resource
+
+# Test directories
+var dirs_to_add = [
+	"res://tests/unit/",
+	"res://tests/integration/"
+]
+
+# Test file suffix
+var file_suffix = ".gd"
+
+# Include hidden files
+var include_subdirectories = true
+
+# Log level (0-3, higher = more verbose)
+var log_level = 2
+
+# Output format
+var junit_xml_file = ""
+var should_exit = true
+var should_exit_on_success = true
