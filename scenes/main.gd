@@ -11,15 +11,15 @@ var _gold: Node = null
 var _enhance_flow: Node = null
 
 # UI nodes
-@onready var gold_lbl: Label = $LeftPanel/GoldLabel
-@onready var atk_lbl: Label = $LeftPanel/AttackLabel
-@onready var def_lbl: Label = $LeftPanel/DefenseLabel
-@onready var pwr_lbl: Label = $LeftPanel/PowerLabel
-@onready var floor_lbl: Label = $LeftPanel/FloorLabel
-@onready var enemy_name: Label = $EnemyArea/EnemyNameLabel
-@onready var enemy_hp: ProgressBar = $EnemyArea/EnemyHPBar
+@onready var gold_lbl: Label = $LeftPanel/VBox/GoldLabel
+@onready var atk_lbl: Label = $LeftPanel/VBox/AttackLabel
+@onready var def_lbl: Label = $LeftPanel/VBox/DefenseLabel
+@onready var pwr_lbl: Label = $LeftPanel/VBox/PowerLabel
+@onready var floor_lbl: Label = $LeftPanel/VBox/FloorLabel
+@onready var enemy_name: Label = $BattleArea/EnemyArea/EnemyNameLabel
+@onready var enemy_hp: ProgressBar = $BattleArea/EnemyArea/EnemyHPBar
 @onready var skip_btn: Button = $SkipButton
-@onready var enhance_btn: Button = $LeftPanel/EnhanceButton
+@onready var enhance_btn: Button = $LeftPanel/VBox/EnhanceButton
 
 # Visual nodes
 @onready var player_sprite: ColorRect = $BattleArea/PlayerSprite
