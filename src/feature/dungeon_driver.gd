@@ -82,6 +82,8 @@ func _ready():
 	if _enemy_controller and _enemy_controller.has_signal("enemy_defeated"):
 		_enemy_controller.enemy_defeated.connect(_on_enemy_defeated_signal)
 
+	# Delay start to ensure all autoloads are initialized
+	await get_tree().create_timer(0.5).timeout
 	# Start first floor
 	if _dungeon_progress and _dungeon_progress.has_method("get_current_floor"):
 		start_floor(_dungeon_progress.get_current_floor())

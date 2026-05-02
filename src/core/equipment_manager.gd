@@ -81,9 +81,12 @@ func get_total_stats() -> Dictionary:
 
 	for slot in _equipped_slots:
 		var equipped: Dictionary = _equipped_slots[slot]
+		var equipment_id: String = equipped.get("id", "")
+		if equipment_id.is_empty():
+			continue  # Skip empty slots
 		var level: int = equipped.get("level", 0)
 		if _item_registry and _item_registry.has_method("get_enhanced_stats"):
-			var enhanced: Dictionary = _item_registry.get_enhanced_stats(equipped.id, level)
+			var enhanced: Dictionary = _item_registry.get_enhanced_stats(equipment_id, level)
 			total_attack += enhanced.get("attack", 0)
 			total_defense += enhanced.get("defense", 0)
 			total_power += enhanced.get("power", 0)
@@ -111,6 +114,8 @@ func _ready():
 	# Initialize all slots empty
 	for i in range(TOTAL_SLOT_COUNT):
 		_equipped_slots[i] = {id = "", level = 0}
+	# Give player a starting weapon for MVP testing
+	equip(0, "weapon_sword_001")
 
 #endregion
 
