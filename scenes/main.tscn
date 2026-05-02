@@ -1,9 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cmain_scene"]
 
-[ext_resource type="Script" path="res://src/core/stat_hud.gd" id="stat_hud"]
-[ext_resource type="Script" path="res://src/feature/offline_reward.gd" id="offline_reward"]
-[ext_resource type="Script" path="res://src/feature/drop_handler.gd" id="drop_handler"]
-[ext_resource type="Script" path="res://src/feature/enhancement_workflow.gd" id="enhancement_workflow"]
+[ext_resource type="Script" path="res://scenes/main.gd" id="main_script"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -13,6 +10,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 size = Vector2(720, 1280)
+script = ExtResource("main_script")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -33,7 +31,6 @@ grow_vertical = 0
 
 [node name="StatHUD" type="Control" parent="HUDContainer"]
 layout_mode = 1
-script = ExtResource("stat_hud")
 
 [node name="GoldLabel" type="Label" parent="HUDContainer/StatHUD"]
 layout_mode = 1
@@ -98,7 +95,7 @@ offset_left = -100.0
 offset_right = 100.0
 offset_bottom = 30.0
 grow_horizontal = 2
-text = "Enemy"
+text = "Waiting..."
 horizontal_alignment = 1
 
 [node name="EnemyHPBar" type="ProgressBar" parent="EnemyArea"]
@@ -138,36 +135,3 @@ offset_right = 150.0
 offset_bottom = -30.0
 grow_vertical = 0
 text = "Enhance"
-
-[node name="OfflineReward" type="Control" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("offline_reward")
-
-[node name="DropHandler" type="Control" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("drop_handler")
-
-[node name="EnhancementWorkflow" type="Control" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("enhancement_workflow")
-
-[connection signal="pressed" from="SkipButton" to="CombatEngine" method="skip_battle"]
-[connection signal="pressed" from="EnhanceButton" to="EnhancementWorkflow" method="start_enhancement" binds= [0]]
