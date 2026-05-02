@@ -8,7 +8,7 @@ var _dungeon: Node = null
 var _equip: Node = null
 var _progress: Node = null
 var _gold: Node = null
-var _enhance: Node = null
+var _enhance_flow: Node = null
 
 # UI nodes
 @onready var gold_lbl: Label = $LeftPanel/GoldLabel
@@ -38,7 +38,7 @@ func _ready():
 	_equip = get_node("/root/EquipmentManager")
 	_progress = get_node("/root/DungeonProgress")
 	_gold = get_node("/root/GoldVault")
-	_enhance = get_node("/root/EnhancementWorkflow")
+	_enhance_flow = get_node("/root/EnhancementWorkflow")
 
 	# Connect buttons
 	skip_btn.pressed.connect(_skip)
@@ -64,8 +64,8 @@ func _skip():
 		_combat.skip_battle()
 
 func _enhance():
-	if _enhance and _enhance.has_method("start_enhancement"):
-		_enhance.start_enhancement(0)
+	if _enhance_flow and _enhance_flow.has_method("start_enhancement"):
+		_enhance_flow.start_enhancement(0)
 
 func _on_start(data: Dictionary):
 	enemy_name.text = "Floor %d Enemy" % data.get("floor", 1)
