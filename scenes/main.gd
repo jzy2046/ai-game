@@ -11,15 +11,15 @@ var _gold_vault: Node = null
 var _enhancement_workflow: Node = null
 
 # UI references
-@onready var _gold_label: Label = $HUDContainer/StatHUD/GoldLabel
-@onready var _attack_label: Label = $HUDContainer/StatHUD/AttackLabel
-@onready var _defense_label: Label = $HUDContainer/StatHUD/DefenseLabel
-@onready var _power_label: Label = $HUDContainer/StatHUD/PowerLabel
-@onready var _floor_label: Label = $HUDContainer/FloorLabel
+@onready var _gold_label: Label = $LeftPanel/GoldLabel
+@onready var _attack_label: Label = $LeftPanel/AttackLabel
+@onready var _defense_label: Label = $LeftPanel/DefenseLabel
+@onready var _power_label: Label = $LeftPanel/PowerLabel
+@onready var _floor_label: Label = $LeftPanel/FloorLabel
 @onready var _enemy_name_label: Label = $EnemyArea/EnemyNameLabel
 @onready var _enemy_hp_bar: ProgressBar = $EnemyArea/EnemyHPBar
 @onready var _skip_button: Button = $SkipButton
-@onready var _enhance_button: Button = $EnhanceButton
+@onready var _enhance_button: Button = $LeftPanel/EnhanceButton
 
 func _ready():
 	# Cache autoloads
@@ -63,7 +63,7 @@ func _on_skip_pressed():
 
 func _on_enhance_pressed():
 	if _enhancement_workflow and _enhancement_workflow.has_method("start_enhancement"):
-		_enhancement_workflow.start_enhancement(0)  # MVP: slot 0 (weapon)
+		_enhancement_workflow.start_enhancement(0)
 
 func _on_battle_started(enemy_data: Dictionary):
 	_enemy_name_label.text = "Enemy Floor %d" % enemy_data.get("floor", 1)
@@ -79,15 +79,13 @@ func _on_enemy_health_changed(enemy_id: String, new_hp: int):
 	_enemy_hp_bar.value = new_hp
 
 func _on_damage_dealt(damage: int, target_id: String):
-	# Visual feedback - HP bar already updated by health_changed
 	pass
 
 func _on_battle_victory(enemy_id: String, rewards: Dictionary):
 	_enemy_name_label.text = "Victory!"
-	# DungeonDriver handles progression
 
 func _on_floor_changed(new_floor: int):
-	_floor_label.text = "Floor %d" % new_floor
+	_floor_label.text = "Floor: %d" % new_floor
 
 func _on_stats_updated(new_stats: Dictionary):
 	_attack_label.text = "ATK: %d" % new_stats.get("attack", 0)
@@ -95,11 +93,11 @@ func _on_stats_updated(new_stats: Dictionary):
 	_power_label.text = "PWR: %d" % new_stats.get("power", 0)
 
 func _on_gold_changed(new_amount: int):
-	_gold_label.text = str(new_amount)
+	_gold_label.text = "Gold: %d" % new_amount
 
 func _update_ui():
 	if _gold_vault and _gold_vault.has_method("get_gold"):
-		_gold_label.text = str(_gold_vault.get_gold())
+		_gold_label.text = "Gold: %d" % _gold_vault.get_gold()
 
 	if _equipment_manager and _equipment_manager.has_method("get_total_stats"):
 		var stats: Dictionary = _equipment_manager.get_total_stats()
@@ -108,4 +106,4 @@ func _update_ui():
 		_power_label.text = "PWR: %d" % stats.get("power", 0)
 
 	if _dungeon_progress and _dungeon_progress.has_method("get_current_floor"):
-		_floor_label.text = "Floor %d" % _dungeon_progress.get_current_floor()
+		_floor_label.text = "Floor: %d" % _dungeon_progress.get_current_floor()
