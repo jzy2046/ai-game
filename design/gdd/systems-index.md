@@ -26,22 +26,22 @@
 | 5 | 货币系统 | Economy | MVP | Approved | design/gdd/currency-system.md | 存档系统 |
 | 6 | 粒子系统 | Presentation | MVP | Approved | design/gdd/particle-system.md | — |
 | 7 | 震动反馈系统 | Presentation | MVP | Approved | design/gdd/vibration-feedback-system.md | — |
-| 8 | UI布局系统 | UI | MVP | Not Started | — | — |
-| 9 | 地牢结构系统 | Gameplay | MVP | Not Started | — | 存档系统 |
-| 10 | 敌人系统 | Gameplay | MVP | Not Started | — | 物品数据库 |
-| 11 | 战斗系统 | Gameplay | MVP | Not Started | — | 敌人系统, 物品数据库 |
-| 12 | 装备槽系统 | Economy | MVP | Not Started | — | 物品数据库, 存档系统 |
-| 13 | 强化公式系统 | Progression | MVP | Not Started | — | 物品数据库 |
-| 14 | 掉落表系统 | Economy | MVP | Not Started | — | 敌人系统, 物品数据库 |
-| 15 | 收益计算系统 | Economy | MVP | Not Started | — | 战斗系统, 时间追踪系统 |
-| 16 | 数值显示系统 | Presentation | MVP | Not Started | — | 物品数据库, 货币系统 |
-| 17 | 触控输入系统 | UI | MVP | Not Started | — | UI布局系统 |
-| 18 | 地牢推进系统 | Gameplay | MVP | Not Started | — | 地牢结构系统, 战斗系统, 敌人系统 |
-| 19 | 装备掉落系统 | Economy | MVP | Not Started | — | 战斗系统, 掉落表系统, 物品数据库 |
-| 20 | 装备强化系统 | Progression | MVP | Not Started | — | 装备槽系统, 材料系统, 货币系统, 强化公式系统 |
-| 21 | 离线收益系统 | Persistence | MVP | Not Started | — | 收益计算系统, 存档系统 |
-| 22 | 视觉反馈系统 | Presentation | MVP | Not Started | — | 粒子系统, 数值显示系统, 震动反馈系统 |
-| 23 | 音效系统 | Audio | Vertical Slice | Not Started | — | 战斗系统, 强化系统 |
+| 8 | UI布局系统 | UI | MVP | Designed | design/gdd/ui-layout-system.md | — |
+| 9 | 地牢结构系统 | Gameplay | MVP | Designed | design/gdd/dungeon-structure-system.md | 存档系统 |
+| 10 | 敌人系统 | Gameplay | MVP | Designed | design/gdd/enemy-system.md | 物品数据库 |
+| 11 | 战斗系统 | Gameplay | MVP | Designed | design/gdd/combat-system.md | 敌人系统, 物品数据库 |
+| 12 | 装备槽系统 | Economy | MVP | Designed | design/gdd/equipment-slot-system.md | 物品数据库, 存档系统 |
+| 13 | 强化公式系统 | Progression | MVP | Designed | design/gdd/enhancement-formula-system.md | 物品数据库 |
+| 14 | 掉落表系统 | Economy | MVP | Designed | design/gdd/drop-table-system.md | 敌人系统, 物品数据库 |
+| 15 | 收益计算系统 | Economy | MVP | Designed | design/gdd/yield-calculation-system.md | 战斗系统, 时间追踪系统 |
+| 16 | 数值显示系统 | Presentation | MVP | Designed | design/gdd/stat-display-system.md | 物品数据库, 货币系统 |
+| 17 | 触控输入系统 | UI | MVP | Designed | design/gdd/touch-input-system.md | UI布局系统 |
+| 18 | 地牢推进系统 | Gameplay | MVP | Designed | design/gdd/dungeon-advancement-system.md | 地牢结构系统, 战斗系统, 敌人系统 |
+| 19 | 装备掉落系统 | Economy | MVP | Designed | design/gdd/equipment-drop-system.md | 战斗系统, 掉落表系统, 物品数据库 |
+| 20 | 装备强化系统 | Progression | MVP | Designed | design/gdd/equipment-enhancement-system.md | 装备槽系统, 材料系统, 货币系统, 强化公式系统 |
+| 21 | 离线收益系统 | Persistence | MVP | Designed | design/gdd/offline-yield-system.md | 收益计算系统, 存档系统 |
+| 22 | 视觉反馈系统 | Presentation | MVP | Designed | design/gdd/visual-feedback-system.md | 粒子系统, 数值显示系统, 震动反馈系统 |
+| 23 | 音效系统 | Audio | Vertical Slice | Designed | design/gdd/audio-system.md | 战斗系统, 强化系统 |
 
 ---
 
@@ -164,11 +164,11 @@
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 24 |
-| Design docs started | 7 |
+| Design docs started | 24 |
 | Design docs reviewed | 0 |
 | Design docs approved | 7 |
-| MVP systems designed | 7/23 |
-| Vertical Slice systems designed | 0/1 |
+| MVP systems designed | 23/23 ✓ |
+| Vertical Slice systems designed | 1/1 ✓ |
 
 ---
 

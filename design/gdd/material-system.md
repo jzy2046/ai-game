@@ -1,8 +1,8 @@
 # 材料系统 (Material System)
 
-> **Status**: Approved
+> **Status**: Approved (Revised 2026-05-02 — gold cost formulas deferred to 强化公式系统)
 > **Author**: user + agents
-> **Last Updated**: 2026-04-30
+> **Last Updated**: 2026-05-02
 > **Approved**: 2026-04-30 (Solo mode — no design-review)
 > **Implements Pillar**: 稳定成长 + 多元成长
 
@@ -201,8 +201,9 @@ Material instances have **no locked/unlocked states**:
 |--------|-----------|-----------|-----------|
 | **存档系统** (Upstream) | Bidirectional | `get_materials()`, `update_material()` | MaterialSystem populates cache from SaveSystem; updates SaveSystem after each operation |
 | **物品数据库** (Upstream) | Inbound | `get_material(id)` | MaterialSystem queries for max_stack, category, rarity; does NOT modify |
+| **强化公式系统** (Upstream) | — | — | 强化公式系统 defines gold cost formulas; Material System does NOT calculate gold costs |
 | **货币系统** (Horizontal) | Outbound | `add_currency()`, `remove_currency()` | MaterialSystem routes CURRENCY category operations |
-| **装备强化系统** (Downstream) | Inbound | `get_quantity()`, `can_remove_bulk()`, `remove_material()` | Enhancement System checks and consumes materials |
+| **装备强化系统** (Downstream) | Inbound | `get_quantity()`, `can_remove_bulk()`, `remove_material()` | Enhancement System checks and consumes materials; uses 强化公式系统 for gold costs |
 | **掉落表系统** (Downstream) | Inbound | `add_material()` | Drop System awards materials after combat |
 | **视觉反馈系统** (Downstream) | Outbound | Signals | Visual Feedback listens to material_added, material_milestone for effects |
 
@@ -236,32 +237,15 @@ drop_chance = 0.10 * 5 * 0.3 = 0.15 (15% per enemy)
 
 ---
 
-### Formula 2: Enhancement Gold Cost
+### Formula 2: Enhancement Gold Cost — Delegated to 强化公式系统
 
-The enhancement gold cost formula calculates the Gold required for each enhancement level.
+**Note**: Enhancement gold cost calculation is now owned by **强化公式系统** (Enhancement Formula System). Material System does not calculate gold costs; it only provides material quantity data.
 
-`gold_cost = floor(BASE_GOLD_COST * enhancement_level * rarity_multiplier * equipment_cost_coefficient)`
+**Reference**: For gold cost formulas and tuning knobs, see:
+- `design/gdd/enhancement-formula-system.md` — Gold Cost Formula (Formula 1)
+- `BASE_GOLD_COST` is defined in `强化公式系统` with value **100** (not 50)
 
-**Variables:**
-| Variable | Symbol | Type | Range | Description |
-|----------|--------|------|-------|-------------|
-| BASE_GOLD_COST | — | int | 50 (constant) | Base gold cost at +1 for COMMON equipment |
-| enhancement_level | — | int | 1–10 | Target enhancement level |
-| rarity_multiplier | — | float | 1.0–5.0 (constant) | Rarity-based multiplier: COMMON=1.0, UNCOMMON=1.5, RARE=2.0, EPIC=3.0, LEGENDARY=5.0 |
-| equipment_cost_coefficient | — | float | 1.0–2.8 | Per-equipment cost coefficient from ItemDatabase |
-
-**Output Range:** 50 (COMMON +1, coeff 1.0) to 5000+ (LEGENDARY +10, high coeff).
-
-**Example:**
-Iron Blade +3 (COMMON, cost_coefficient = 1.0):
-```
-gold_cost = floor(50 * 3 * 1.0 * 1.0) = floor(150) = 150
-```
-
-Guardian Plate +5 (EPIC, cost_coefficient = 2.5):
-```
-gold_cost = floor(50 * 5 * 3.0 * 2.5) = floor(1875) = 1875
-```
+**Material System's role**: Provide `get_quantity(mat_enhance_stone_common)` and material consumption services for 装备强化系统.
 
 ---
 
@@ -419,9 +403,10 @@ shard_cost = floor(1 + (10 - 8)) = floor(3) = 3
 
 ### Enhancement Cost Tuning
 
+**Note**: Gold cost tuning knobs (BASE_GOLD_COST) are now defined in **强化公式系统**. See `design/gdd/enhancement-formula-system.md` Tuning Knobs section.
+
 | Knob | Current Value | Safe Range | Effect of Change |
 |------|---------------|------------|------------------|
-| `BASE_GOLD_COST` | 50 | 20–100 | Higher = slower enhancement (gold grind). Lower = faster progression. |
 | `LEVEL_STONE_INCREMENT` | 2 | 1–3 | Higher = steep stone cost curve. Lower = flatter progression. |
 | `BASE_STONE_COST` | 2 | 1–5 | Starting stone requirement. |
 | `BASE_CRYSTAL_COST` | 1 | 1–2 | Crystal Essence entry cost at +5. |
@@ -452,7 +437,7 @@ shard_cost = floor(1 + (10 - 8)) = floor(3) = 3
 
 ### Interaction Notes
 
-- **Changing BASE_GOLD_COST** affects all enhancement gold costs across all rarities (multiplied by rarity_multiplier).
+- **Gold cost tuning** is handled by 强化公式系统; Material System only provides material quantities.
 - **Changing MAX_STACK** values affects overflow frequency. Lower values create pressure to use materials.
 - **Drop rate knobs** interact with floor progression — higher floors naturally increase drops via floor_number multiplier.
 - **Cost knobs** are linear per level. Non-linear scaling (future) would require formula changes, not just knob tuning.
@@ -564,8 +549,8 @@ When materials are awarded (combat end, offline reward):
 **AC-F1-01: Drop Rate Floor 3 COMMON**
 **GIVEN** BASE_DROP_RATE = 0.10, floor_number = 3, RARITY_MULTIPLIER_COMMON = 1.0, **WHEN** drop rate is calculated, **THEN** result = 0.30 (30%).
 
-**AC-F2-01: Gold Cost COMMON +3**
-**GIVEN** BASE_GOLD_COST = 50, enhancement_level = 3, rarity_multiplier = 1.0, cost_coefficient = 1.0, **WHEN** gold cost is calculated, **THEN** result = 150.
+**AC-F2: Gold Cost — See 强化公式系统**
+**Note**: Gold cost acceptance criteria are now defined in `design/gdd/enhancement-formula-system.md` (AC-F1, AC-F3). Material System does not calculate gold costs.
 
 **AC-F3-01: Stone Cost +3**
 **GIVEN** BASE_STONE_COST = 2, enhancement_level = 3, LEVEL_STONE_INCREMENT = 2, **WHEN** stone cost is calculated, **THEN** result = 8.

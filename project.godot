@@ -1,0 +1,95 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here do not have obvious meanings.
+;
+; If editing this file manually, make sure to read the official docs:
+; https://docs.godotengine.org/en/latest/tutorials/editor/project_settings.html
+
+config_version=5
+
+[application]
+
+config/name="爽刷地牢"
+config/description="Idle Dungeon Clicker - Mobile Idle RPG"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.6", "Forward+")
+config/icon="res://icon.svg"
+
+[autoload]
+
+SaveManager="*res://src/foundation/save_manager.gd"
+ParticlePool="*res://src/foundation/particle_pool.gd"
+VibrationController="*res://src/foundation/vibration_controller.gd"
+UILayoutManager="*res://src/foundation/ui_layout_manager.gd"
+ItemRegistry="*res://src/core/item_registry.gd"
+TimeTracker="*res://src/core/time_tracker.gd"
+MaterialInventory="*res://src/core/material_inventory.gd"
+GoldVault="*res://src/core/gold_vault.gd"
+DungeonProgress="*res://src/core/dungeon_progress.gd"
+EnemyController="*res://src/core/enemy_controller.gd"
+EquipmentManager="*res://src/core/equipment_manager.gd"
+StatHUD="*res://src/core/stat_hud.gd"
+TouchRouter="*res://src/core/touch_router.gd"
+CombatEngine="*res://src/feature/combat_engine.gd"
+DropGenerator="*res://src/feature/drop_generator.gd"
+DungeonDriver="*res://src/feature/dungeon_driver.gd"
+DropHandler="*res://src/feature/drop_handler.gd"
+EnhancementWorkflow="*res://src/feature/enhancement_workflow.gd"
+OfflineReward="*res://src/feature/offline_reward.gd"
+FeedbackCoordinator="*res://src/presentation/feedback_coordinator.gd"
+AudioPool="*res://src/polish/audio_pool.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=720
+window/size/window_height_override=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/handheld/orientation="portrait"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+anti_aliasing/2d/msaa=0
+textures/vram_compression/import_2d=true
+environment/defaults/default_clear_color=Color(0.1, 0.1, 0.15, 1)
+
+[input]
+
+touch=false
+
+[physics]
+
+2d/default_gravity=0
+
+[gui]
+
+common/snap_controls_to_pixels=true
+
+[shader_globals]
+
+[autoload_order]
+
+SaveManager=0
+ParticlePool=1
+VibrationController=2
+UILayoutManager=3
+ItemRegistry=4
+TimeTracker=5
+MaterialInventory=6
+GoldVault=7
+DungeonProgress=8
+EnemyController=9
+EquipmentManager=10
+StatHUD=11
+TouchRouter=12
+CombatEngine=13
+DropGenerator=14
+DungeonDriver=15
+DropHandler=16
+EnhancementWorkflow=17
+OfflineReward=18
+FeedbackCoordinator=19
+AudioPool=20

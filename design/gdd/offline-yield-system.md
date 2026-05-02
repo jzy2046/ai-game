@@ -1,0 +1,683 @@
+# 离线收益系统
+
+> **Status**: Designed
+> **Author**: User + agents
+> **Last Updated**: 2026-05-02
+> **Implements Pillar**: 稳定成长
+
+## Overview
+
+离线收益系统是游戏的离线奖励结算层，负责在玩家关闭游戏后计算累积收益、在玩家重新打开游戏时发放奖励、并触发相应的视觉反馈。它连接时间追踪系统（离线时长计算）、收益计算系统（收益公式）、存档系统（奖励持久化），是"稳定成长"支柱的核心实现——玩家即使不在线，游戏也在为他们积累进度。
+
+**核心职责**:
+1. **离线时长获取**: 从时间追踪系统获取本次离线时长，应用上限规则（MAX_ALLOWED_OFFLINE = 86400秒）
+2. **收益计算**: 调用收益计算系统 `calculate_offline_yield(floor_id, duration)` 获取金币、材料、装备掉落
+3. **奖励发放**: 通过货币系统、材料系统、存档系统发放奖励
+4. **反馈触发**: 发出 `offline_yield_claimed` 信号供视觉反馈系统响应
+5. **时间异常处理**: 检测时间倒流、超大跳跃，按存档系统规则处理
+
+**数据流**:
+```
+玩家重新打开游戏 → TimeTrackingSystem.get_offline_duration()
+                  → (时长合法) YieldCalculationSystem.calculate_offline_yield(current_floor, capped_duration)
+                  → CurrencySystem.add_currency() + MaterialSystem.add_material()
+                  → SaveSystem.record_yield_claim()
+                  → emit offline_yield_claimed(yield_data)
+                  → UI显示奖励领取界面
+```
+
+**MVP范围**: 离线收益基于当前楼层计算，24小时上限，无加成系数，奖励领取为一次性操作（无分批领取）。
+
+**支柱支撑**:
+- 稳定成长: 离线期间持续积累收益，玩家每次回归都有确定的进步
+- 爽感反馈: 回归时看到累积奖励的视觉呈现（金币堆、材料堆、装备列表）
+- 掌控节奏: 玩家可选择立即领取或稍后领取（奖励暂存，不强制弹出）
+
+## Player Fantasy
+
+**核心幻想**: "睡一觉，变更强" — 玩家关闭游戏去休息，第二天打开时发现金币堆、材料堆、甚至几件新装备等着领取。爽感来自于"时间也在为我工作"的掌控感：即使我不在线，地牢仍在推进、收益仍在积累。这是一种"被动成长"的满足感——玩家感受到的是时间的价值，而非操作的累积。
+
+**锚定时刻**: 第一次12小时后回归的时刻。玩家昨天晚上推进到第15层，关闭游戏睡觉。今早打开游戏，看到一个"离线奖励"弹窗：
+- 金币: +1440 (12小时 × 2金币/秒)
+- 材料: +120个Enhancement Stone
+- 装备: +1件Iron Blade (COMMON)
+
+玩家点击"领取"，看到金币数字飞溅、材料图标弹出、装备滑入背包。感受："我不需要一直盯着手机，游戏也在帮我变强。"
+
+**回归的仪式感**:
+- 每次打开游戏都是一次"收获仪式"
+- 离线时长转化为可视化的奖励堆
+- 玩家可以选择立即领取或稍后领取（不强制打断当前操作）
+- 领取按钮是"确认成长"的主动行为，而非被动弹出
+
+**时间的确定价值**:
+- 离线收益公式透明，玩家知道"1小时 = X金币"
+- 无RNG，每次回归奖励数量可预测
+- 24小时上限是合理的边界——超过24小时不再叠加，鼓励玩家适度回归
+- 支柱"稳定成长"：时间投入 = 确定回报，即使不在线
+
+**参考时刻**:
+- Idle Slayer：回归时金币数字飞溅，玩家看到具体的累积数量
+- AFK Arena：离线奖励弹窗展示宝箱内容，"开箱"仪式感
+- Idle Heroes：材料堆可视化，玩家一眼看出"这次赚了多少"
+
+**支柱对应**:
+- 定成长：离线期间确定收益，时间 = 进度
+- 爽感反馈：回归时数字飞溅、奖励可视化（由视觉反馈系统执行）
+- 掌控节奏：玩家可选择何时领取，不强制弹窗打断
+- 多元成长：离线收益同时产出金币、材料、装备，多条成长线并行
+
+## Detailed Design
+
+### Core Rules
+
+**Rule 1: Offline Duration Retrieval**
+
+应用启动时获取离线时长。
+
+**入口接口**:
+```gdscript
+func process_offline_yield() -> OfflineYieldResult
+```
+
+**触发时机**: 应用启动时自动调用，或玩家手动触发"结算离线收益"。
+
+**时长获取**:
+```gdscript
+var offline_duration = TimeTrackingSystem.get_offline_duration()
+# Returns: { duration_seconds: float, anomaly_type: AnomalyType | null }
+```
+
+---
+
+**Rule 2: Time Anomaly Handling**
+
+检测并处理时间异常。
+
+**异常类型**:
+| Anomaly Type | Condition | Action |
+|--------------|-----------|--------|
+| `time_backward` | `duration_seconds < 0` | Log warning, return ZERO_YIELD, no rewards |
+| `forward_jump` | `duration_seconds > MAX_FORWARD_JUMP (604800)` | Cap to MAX_ALLOWED_OFFLINE, log anomaly |
+| `session_overflow` | Duration exceeds session limits | Cap to MAX_ALLOWED_OFFLINE |
+| `none` | `0 <= duration <= MAX_ALLOWED_OFFLINE` | Normal processing |
+
+**异常处理流程**:
+1. 若 `anomaly_type == time_backward` → 返回 `TIME_ANOMALY`, 无奖励发放
+2. 若 `duration > MAX_ALLOWED_OFFLINE` → 应用上限 `capped_duration = MAX_ALLOWED_OFFLINE`
+3. 若 `duration < 0` → 视为0秒，返回 `ZERO_YIELD`
+4. 正常时长 → 继续收益计算
+
+---
+
+**Rule 3: Offline Duration Cap**
+
+应用24小时上限规则。
+
+**上限计算**:
+```gdscript
+var capped_duration = min(offline_duration.duration_seconds, MAX_ALLOWED_OFFLINE)
+# MAX_ALLOWED_OFFLINE = 86400 seconds (24 hours)
+```
+
+**设计意图**: 防止玩家长时间不回归后获得过多奖励，鼓励适度回归频率。
+
+---
+
+**Rule 4: Yield Calculation**
+
+调用收益计算系统获取奖励数据。
+
+**收益查询**:
+```gdscript
+var current_floor = SaveSystem.get_current_floor()
+var yield_data = YieldCalculationSystem.calculate_offline_yield(current_floor, capped_duration)
+# yield_data = { gold: int, materials: { material_id: quantity }, equipment_drops: [equipment_instance] }
+```
+
+**收益结构**:
+- `gold`: 离线期间累积金币
+- `materials`: 离线期间累积材料（应用 MAX_OFFLINE_MATERIAL_STACK 上限）
+- `equipment_drops`: 离线期间装备掉落列表（随机生成的装备实例）
+
+---
+
+**Rule 5: Material Stack Cap Application**
+
+应用材料堆叠上限。
+
+**上限检查**:
+```gdscript
+for material_id in yield_data.materials:
+    var current_stack = MaterialSystem.get_material_count(material_id)
+    var max_stack = MAX_OFFLINE_MATERIAL_STACK
+    var offline_gain = yield_data.materials[material_id]
+    yield_data.materials[material_id] = min(offline_gain, max_stack - current_stack)
+    # If current_stack >= max_stack, offline gain becomes 0
+```
+
+**设计意图**: 防止材料无限堆积，鼓励玩家定期回归消耗材料。
+
+---
+
+**Rule 6: Yield Distribution**
+
+发放奖励到玩家账户。
+
+**金币发放**:
+```gdscript
+if yield_data.gold > 0:
+    CurrencySystem.add_currency("mat_currency_gold", yield_data.gold)
+    # Triggers currency_added signal, SaveSystem critical save
+```
+
+**材料发放**:
+```gdscript
+for material_id in yield_data.materials:
+    if yield_data.materials[material_id] > 0:
+        MaterialSystem.add_material(material_id, yield_data.materials[material_id])
+        # Triggers material_added signal, SaveSystem critical save
+```
+
+**装备发放**:
+```gdscript
+for equipment_instance in yield_data.equipment_drops:
+    SaveSystem.add_equipment_to_inventory(equipment_instance)
+    # Equipment instances generated by YieldCalculationSystem
+```
+
+---
+
+**Rule 7: Yield Record and Claim Tracking**
+
+记录收益领取，防止重复领取。
+
+**领取记录**:
+```gdscript
+SaveSystem.record_yield_claim(timestamp, capped_duration, yield_data)
+# Updates: last_claim_timestamp, pending_yield = null
+```
+
+**防重复机制**:
+- 每次领取后清除 `pending_yield` 数据
+- 应用启动时检查是否有 `pending_yield`（未领取的收益）
+- 若有pending → 显示领取界面；若无 → 正常启动
+
+---
+
+**Rule 8: Pending Yield Storage**
+
+暂存未领取的收益数据。
+
+**暂存结构**:
+```gdscript
+SaveSystem.store_pending_yield(yield_data)
+# Stores: { gold, materials, equipment_drops, calculated_at, duration }
+```
+
+**用途**: 玩家可选择不立即领取，稍后在UI中手动触发领取。
+
+---
+
+**Rule 9: Claim Signal Emission**
+
+领取完成后发出信号。
+
+**信号定义**:
+```gdscript
+signal offline_yield_claimed(yield_data: Dictionary)
+# yield_data = { gold: int, materials: { material_id: quantity }, equipment_drops: [], duration: float }
+```
+
+**信号订阅者**:
+- 视觉反馈系统: 触发金币飞溅、材料弹出、装备滑入动画
+- 数值显示系统: 更新HUD显示的金币/材料数量
+- UI系统: 关闭领取界面，显示主界面
+
+---
+
+**Rule 10: Zero Yield Handling**
+
+处理零收益情况。
+
+**零收益条件**:
+| Condition | Result |
+|-----------|--------|
+| `capped_duration == 0` | No calculation, return ZERO_YIELD |
+| `yield_data.gold == 0 && materials empty && no drops` | Still show claim UI with "No rewards" message |
+| Player just claimed and reopened app | No pending yield, skip claim UI |
+
+**零收益显示**: 若离线时长过短（<60秒），可显示"离线时间过短，无收益"提示。
+
+---
+
+### States and Transitions
+
+| State | Description | Entry | Exit |
+|-------|-------------|-------|------|
+| **Idle** | 无离线收益处理，等待应用启动 | 初始化/领取完成 | `process_offline_yield()` 被调用 |
+| **Calculating** | 获取时长并计算收益 | 收到请求 | 计算完成或异常 |
+| **PendingClaim** | 收益已计算，暂存待领取 | 计算完成 | `claim_yield()` 被调用 |
+| **Claiming** | 执行奖励发放 | 玩家点击领取 | 发放完成 |
+| **Completing** | 发出完成信号 | 发放完成 | 信号发出，返回Idle |
+
+**Transition Table**:
+| Current | Trigger | Next | Action |
+|---------|---------|------|--------|
+| Idle | `process_offline_yield()` | Calculating | 开始时长获取和计算 |
+| Calculating | Time anomaly detected | Idle | 返回错误结果，无奖励 |
+| Calculating | Zero duration | Idle | 返回 ZERO_YIELD，跳过领取UI |
+| Calculating | Valid yield calculated | PendingClaim | 暂存收益数据 |
+| PendingClaim | `claim_yield()` called | Claiming | 开始发放奖励 |
+| PendingClaim | App closed without claiming | PendingClaim | 收益数据持久化，下次启动恢复 |
+| Claiming | Distribution complete | Completing | 发出信号 |
+| Completing | Signal emitted | Idle | 清除pending_yield，返回成功 |
+
+---
+
+### Interactions with Other Systems
+
+**上游依赖**:
+
+| System | Interface Used | Data Flow |
+|--------|---------------|-----------|
+| **时间追踪系统** | `get_offline_duration()` | 获取离线时长和异常类型 |
+| **收益计算系统** | `calculate_offline_yield(floor_id, duration)` | 获取金币、材料、装备掉落数据 |
+| **存档系统** | `get_current_floor()` | 获取当前楼层用于收益计算 |
+| **存档系统** | `store_pending_yield(yield_data)` | 暂存未领取收益 |
+| **存档系统** | `record_yield_claim(timestamp, duration, yield_data)` | 记录领取，清除pending |
+| **货币系统** | `add_currency(currency_id, amount)` | 发放金币奖励 |
+| **材料系统** | `add_material(material_id, amount)` | 发放材料奖励 |
+| **材料系统** | `get_material_count(material_id)` | 查询当前材料堆叠数量 |
+
+**下游依赖**:
+
+| System | Signal/Interface | Data Flow |
+|--------|-----------------|-----------|
+| **视觉反馈系统** | `offline_yield_claimed(yield_data)` | 触发金币飞溅、材料弹出动画 |
+| **数值显示系统** | `offline_yield_claimed` signal | 更新HUD金币/材料显示 |
+| **装备掉落系统** | Indirect | YieldCalculationSystem may call DropTableSystem |
+
+## Formulas
+
+### F1: Capped Offline Duration
+
+The capped offline duration formula is defined as:
+
+`capped_duration = min(raw_duration, MAX_ALLOWED_OFFLINE)`
+
+**Variables:**
+| Variable | Symbol | Type | Range | Description |
+|----------|--------|------|-------|-------------|
+| raw_duration | `D_raw` | float | 0–604800+ | Raw offline duration from TimeTrackingSystem |
+| MAX_ALLOWED_OFFLINE | `MAX_OFF` | int | 86400 (registry) | Maximum allowed offline duration |
+| capped_duration | `D_cap` | float | 0–86400 | Duration used for yield calculation |
+
+**Output Range:**
+- Minimum: `0` (player just closed and reopened app)
+- Maximum: `86400` (24 hours — any longer duration is capped)
+
+**Example:**
+Player offline for 12 hours (43200 seconds):
+```
+capped_duration = min(43200, 86400) = 43200
+```
+
+Player offline for 48 hours (172800 seconds):
+```
+capped_duration = min(172800, 86400) = 86400
+```
+
+---
+
+### F2: Offline Yield Calculation (Delegated to 收益计算系统)
+
+Offline yield is calculated by calling 收益计算系统:
+
+**Yield Query**:
+```gdscript
+yield_data = YieldCalculationSystem.calculate_offline_yield(floor_id, capped_duration)
+```
+
+**Reference**: See `design/gdd/yield-calculation-system.md` for full formula definitions:
+- Formula 5: Offline yield per second based on floor difficulty
+- Formula 6: Material yield calculation
+- Formula 7: Equipment drop probability during offline
+
+---
+
+### F3: Material Stack Cap Application
+
+The material stack cap formula is defined as:
+
+`actual_material_gain = min(offline_gain, MAX_OFFLINE_MATERIAL_STACK - current_stack)`
+
+**Variables:**
+| Variable | Symbol | Type | Range | Description |
+|----------|--------|------|-------|-------------|
+| offline_gain | `G_off` | int | 0–500+ | Calculated offline material gain |
+| MAX_OFFLINE_MATERIAL_STACK | `MAX_MAT` | int | 500 (registry) | Maximum material stack size |
+| current_stack | `S_cur` | int | 0–500 | Current material count in inventory |
+| actual_material_gain | `G_act` | int | 0–500 | Actual material added to inventory |
+
+**Output Range:**
+- Minimum: `0` (current_stack >= MAX_OFFLINE_MATERIAL_STACK)
+- Maximum: `500` (current_stack = 0, offline_gain >= 500)
+
+**Example:**
+Player has 450 Enhancement Stones, offline gains 120:
+```
+actual_material_gain = min(120, 500 - 450) = min(120, 50) = 50
+```
+
+Player has 0 Stones, offline gains 120:
+```
+actual_material_gain = min(120, 500 - 0) = 120
+```
+
+Player has 500 Stones, offline gains 120:
+```
+actual_material_gain = min(120, 500 - 500) = 0
+```
+
+---
+
+### F4: Zero Yield Detection
+
+The zero yield condition formula is defined as:
+
+`is_zero_yield = (capped_duration < 60) OR (gold == 0 AND materials.empty AND equipment_drops.empty)`
+
+**Variables:**
+| Variable | Symbol | Type | Range | Description |
+|----------|--------|------|-------|-------------|
+| capped_duration | `D_cap` | float | 0–86400 | Capped offline duration |
+| gold | `G` | int | 0–∞ | Calculated gold yield |
+| materials | `M` | dict | {}–{...} | Material yield dictionary |
+| equipment_drops | `E` | array | []–[...] | Equipment drop list |
+| is_zero_yield | `Z` | bool | true/false | Whether to show zero yield UI |
+
+**Zero Yield Conditions**:
+| Condition | Result |
+|-----------|--------|
+| `D_cap < 60` | Zero yield — "离线时间过短" |
+| `G == 0 AND M.empty AND E.empty` | Zero yield — floor yields nothing |
+| Any non-zero value | Normal claim UI |
+
+---
+
+### Summary Table: Offline Yield Examples
+
+| Scenario | Raw Duration | Capped Duration | Floor | Gold Yield | Material Yield | Equipment Drops |
+|----------|--------------|-----------------|-------|------------|----------------|-----------------|
+| 1 hour offline | 3600s | 3600s | Floor 10 | 720 | 30 Stones | 0 |
+| 12 hours offline | 43200s | 43200s | Floor 15 | 1440 | 120 Stones | 1 COMMON |
+| 24 hours offline | 86400s | 86400s | Floor 20 | 2880 | 240 Stones | 2 COMMON |
+| 48 hours offline | 172800s | 86400s | Floor 20 | 2880 | 240 Stones | 2 COMMON |
+| 30 seconds offline | 30s | 30s | Floor 10 | 0 | 0 | 0 (zero yield) |
+| Time backward | -60s | 0s | Any | 0 | 0 | 0 (anomaly) |
+
+**Note**: Gold and material yield rates per floor are defined in 收益计算系统 GDD.
+
+## Edge Cases
+
+### E1: Time Backward Anomaly
+
+**场景**: 玩家修改系统时间向后调整，导致 `get_offline_duration()` 返回负值。
+
+**处理**: 时间追踪系统检测到 `anomaly_type = time_backward`，离线收益系统返回 `TIME_ANOMALY`，无奖励发放，日志警告，UI显示"时间异常，无法结算"。
+
+---
+
+### E2: Forward Jump Exceeding 7 Days
+
+**场景**: 玩家修改系统时间向前跳跃超过7天（604800秒）。
+
+**处理**: 时间追踪系统检测到 `anomaly_type = forward_jump`，离线收益系统将时长上限设为 `MAX_ALLOWED_OFFLINE (86400)`，正常发放24小时收益，日志记录异常事件。
+
+---
+
+### E3: Player Offline for > 24 Hours
+
+**场景**: 玩家正常离线超过24小时（未修改时间）。
+
+**处理**: 时长正常检测（无异常），应用上限 `capped_duration = 86400`，发放24小时收益，UI显示"离线24小时+"，无惩罚。
+
+---
+
+### E4: Player Offline for < 60 Seconds
+
+**场景**: 玩家刚关闭应用立即重新打开，离线时长极短。
+
+**处理**: `capped_duration < 60` 触发零收益，跳过领取UI，无奖励发放，无视觉反馈。
+
+---
+
+### E5: Material Stack Already at Max
+
+**场景**: 玩家材料堆叠已达上限（500个），离线期间计算获得更多材料。
+
+**处理**: `actual_material_gain = 0`（应用 F3 公式），金币和装备正常发放，材料部分显示"+0"，UI提示"材料已达上限"。
+
+---
+
+### E6: No Pending Yield on App Start
+
+**场景**: 应用启动时检查存档，发现无 `pending_yield` 数据。
+
+**处理**: 跳过领取界面，直接进入主界面，正常启动流程。
+
+---
+
+### E7: Player Claims Partial Yield Then Closes App
+
+**场景**: 玩家领取部分奖励后关闭应用（MVP不支持分批领取，此场景为异常）。
+
+**处理**: MVP设计中领取为一次性操作，此场景不应发生。若发生（如UI异常），依赖存档系统已记录的 `last_claim_timestamp` 防止重复发放。
+
+---
+
+### E8: Concurrent Claim Requests
+
+**场景**: 玩家快速多次点击领取按钮。
+
+**处理**: 第一次领取开始后设置状态为 `Claiming`，后续点击忽略（状态非 `PendingClaim`），防止重复发放。
+
+---
+
+### E9: Yield Calculation Returns No Equipment Drops
+
+**场景**: 收益计算系统返回 `equipment_drops = []`（楼层过低或概率未命中）。
+
+**处理**: 正常发放金币和材料，装备部分UI显示"+0装备"，无装备滑入动画。
+
+---
+
+### E10: SaveSystem Failure During Yield Record
+
+**场景**: 奖励发放成功，但存档系统 `record_yield_claim()` 失败。
+
+**处理**: 奖励已发放（不可撤销），发出 `offline_yield_claimed` 信号，存档系统后台重试持久化。下次启动可能显示重复pending（需依赖 `last_claim_timestamp` 防重复）。
+
+---
+
+### E11: Network/Server Time Disagreement
+
+**场景**: MVP为单机游戏，无服务器时间。此场景为Post-MVP。
+
+**处理**: MVP设计中不存在此问题。Post-MVP若添加云端同步，需引入服务器时间校验。
+
+---
+
+### E12: Player Force-Closes App During Claiming
+
+**场景**: 玩家在奖励发放过程中强制关闭应用。
+
+**处理**: 奖励可能部分发放（金币已加但材料未加）。存档系统在每次 `add_currency`/`add_material` 后触发critical save，下次启动时依赖存档状态恢复。若有pending_yield但部分已发放，按已发放状态处理。
+
+---
+
+### E13: App Crash Before Claim Signal
+
+**场景**: 奖励发放完成，但应用崩溃导致 `offline_yield_claimed` 信号未发出。
+
+**处理**: 奖励已发放并存档，下次启动时UI检查存档状态，发现 `last_claim_timestamp` 更新且无pending_yield，不显示领取界面。
+
+## Dependencies
+
+### Upstream Dependencies (本系统依赖)
+
+| System | Type | Interface | Data Flow |
+|--------|------|-----------|-----------|
+| **时间追踪系统** | Hard | `get_offline_duration()` | 获取离线时长和异常类型 |
+| **收益计算系统** | Hard | `calculate_offline_yield(floor_id, duration)` | 获取金币、材料、装备掉落数据 |
+| **存档系统** | Hard | `get_current_floor()`, `store_pending_yield()`, `record_yield_claim()` | 获取当前楼层、暂存/记录收益 |
+| **货币系统** | Hard | `add_currency(currency_id, amount)` | 发放金币奖励 |
+| **材料系统** | Hard | `add_material(material_id, amount)`, `get_material_count(material_id)` | 发放材料奖励、查询堆叠数量 |
+
+**Interface Contracts**:
+- 时间追踪系统返回 `{ duration_seconds: float, anomaly_type: AnomalyType | null }`
+- 收益计算系统返回 `{ gold: int, materials: { material_id: quantity }, equipment_drops: [] }`
+- 存档系统 `store_pending_yield()` 为critical trigger，立即持久化
+- 货币系统 `add_currency()` 发出 `currency_added` 信号
+- 材料系统 `add_material()` 发出 `material_added` 信号
+
+---
+
+### Downstream Dependencies (依赖本系统)
+
+| System | Type | Interface/Signal | Data Flow |
+|--------|------|-----------------|-----------|
+| **视觉反馈系统** | Hard | `offline_yield_claimed(yield_data)` | 触发金币飞溅、材料弹出动画 |
+| **数值显示系统** | Hard | `offline_yield_claimed` signal | 更新HUD金币/材料显示 |
+| **UI系统** | Soft | Claim UI display | 显示领取界面、关闭领取界面 |
+
+**Signal Contracts**:
+- `offline_yield_claimed(yield_data: Dictionary)` 包含 `{ gold, materials, equipment_drops, duration }`
+
+---
+
+### Dependency Notes
+
+- 本系统为终端系统（Feature层），无下游系统依赖其接口
+- 收益计算系统可能间接调用掉落表系统生成装备掉落，但离线收益系统不直接依赖掉落表系统
+- 存档系统是核心依赖，所有收益发放和记录操作依赖其持久化能力
+
+## Tuning Knobs
+
+本系统引用的 tuning knobs 来自上游系统和 registry：
+
+| Knob | Value | Source | Effect on This System |
+|------|-------|--------|----------------------|
+| MAX_ALLOWED_OFFLINE | 86400 | Registry (存档系统) | 离线时长上限，24小时 |
+| MAX_OFFLINE_MATERIAL_STACK | 500 | Registry (收益计算系统) | 材料堆叠上限 |
+| MAX_FORWARD_JUMP | 604800 | Registry (时间追踪系统) | 时间跳跃检测阈值，7天 |
+
+**本系统无独立 tuning knobs** — 所有数值由上游系统定义。
+
+---
+
+## Visual/Audio Requirements
+
+### Visual Feedback Moments
+
+| 触发时机 | 预期视觉效果 | 实现归属 |
+|---------|-------------|---------|
+| 显示领取界面 | 离线奖励弹窗（金币堆、材料堆、装备列表） | UI系统 |
+| 点击领取按钮 | 按钮缩放反馈 | UI系统 |
+| 金币发放 | 金币数字飞溅（从弹窗飞向HUD） | 视觉反馈系统 |
+| 材料发放 | 材料图标弹出（从弹窗飞向材料栏） | 视觉反馈系统 |
+| 装备发放 | 装备卡片滑入背包 | 视觉反馈系统 |
+
+### Audio Feedback Moments (音效系统负责)
+
+| 触发时机 | 预期音效 | 实现归属 |
+|---------|---------|---------|
+| 显示领取界面 | 弹窗打开音效 | 音效系统 |
+| 点击领取按钮 | 确认音效 | 音效系统 |
+| 金币发放 | 金币掉落/堆积音效 | 音效系统 |
+| 装备发放 | 装备获得音效 | 音效系统 |
+
+**MVP简化**: 音效系统为Vertical Slice，MVP阶段音效可选。发出信号供后续接入。
+
+---
+
+## UI Requirements
+
+| 元素 | 功能 | 显示时机 | 交互 |
+|-----|------|---------|-----|
+| **领取弹窗** | 显示离线奖励详情 | 应用启动有pending_yield时 | 点击领取或关闭 |
+| **金币显示** | 显示累积金币数量 | 领取弹窗内 | 无交互（信息展示） |
+| **材料显示** | 显示累积材料数量和图标 | 领取弹窗内 | 无交互（信息展示） |
+| **装备列表** | 显示获得的装备卡片 | 领取弹窗内 | 无交互（信息展示） |
+| **领取按钮** | 触发奖励发放 | 领取弹窗底部 | 点击触发领取 |
+| **关闭按钮** | 关闭弹窗（暂不领取） | 领取弹窗顶部/底部 | 点击关闭，pending_yield保留 |
+
+**布局要求**:
+- 领取按钮满足最小触控目标（44pt iOS / 48dp Android）
+- 弹窗居中显示，半透明背景遮罩
+- 装备列表支持滚动（若掉落超过3件）
+
+---
+
+## Acceptance Criteria
+
+### Offline Yield Calculation
+
+**AC1**: GIVEN player offline for 12 hours at Floor 15, WHEN `process_offline_yield()` called, THEN `capped_duration = 43200`, yield calculated, `pending_yield` stored.
+
+**AC2**: GIVEN player offline for 48 hours at Floor 20, WHEN `process_offline_yield()` called, THEN `capped_duration = 86400` (cap applied), yield calculated for 24 hours only.
+
+**AC3**: GIVEN player offline for 30 seconds, WHEN `process_offline_yield()` called, THEN zero yield returned, no claim UI displayed.
+
+### Time Anomaly Handling
+
+**AC4**: GIVEN `get_offline_duration()` returns `duration = -60` (time_backward), WHEN `process_offline_yield()` called, THEN returns TIME_ANOMALY, no rewards distributed.
+
+**AC5**: GIVEN `get_offline_duration()` returns `duration = 700000` (forward_jump), WHEN `process_offline_yield()` called, THEN `capped_duration = 86400`, normal yield distributed, anomaly logged.
+
+### Material Stack Cap
+
+**AC6**: GIVEN player has 450 Enhancement Stones, offline yield calculates 120 Stones, WHEN `claim_yield()` called, THEN actual gain = 50 (500 - 450).
+
+**AC7**: GIVEN player has 500 Enhancement Stones, offline yield calculates 120 Stones, WHEN `claim_yield()` called, THEN actual gain = 0, UI shows "材料已达上限".
+
+### Yield Distribution
+
+**AC8**: GIVEN valid yield_data with gold=1000, materials=50 Stones, 1 equipment, WHEN `claim_yield()` called, THEN CurrencySystem.add_currency(1000), MaterialSystem.add_material(50), SaveSystem.add_equipment() called.
+
+**AC9**: GIVEN yield distribution complete, WHEN operation succeeds, THEN `offline_yield_claimed(yield_data)` signal emits.
+
+### Pending Yield Persistence
+
+**AC10**: GIVEN pending_yield stored, player closes app without claiming, WHEN app restarts, THEN pending_yield detected, claim UI displayed again.
+
+**AC11**: GIVEN yield claimed, `record_yield_claim()` called, WHEN app restarts, THEN no pending_yield, no claim UI displayed.
+
+### Concurrent Claims
+
+**AC12**: GIVEN state = Claiming, WHEN `claim_yield()` called again, THEN request ignored, no duplicate distribution.
+
+### Zero Yield Display
+
+**AC13**: GIVEN yield_data with gold=0, materials={}, drops=[], WHEN claim UI displayed, THEN shows "No rewards" message.
+
+---
+
+## Open Questions
+
+**OQ1**: Should offline yield include a bonus multiplier (e.g., VIP status, late-game upgrade)?
+
+**OQ2**: Should the claim UI be skippable (auto-claim on startup with no popup)?
+
+**OQ3**: Should equipment drops during offline be limited to max N items per period?
+
+**OQ4**: Should reaching 24h cap trigger a "Come back sooner" prompt?
+
+**OQ5**: Should offline yield be calculated based on highest floor reached or current floor?
+
+**OQ6**: Should there be a "banked yield" mechanic — claim partial rewards and leave rest for later?
+
+**OQ7**: Should time anomalies affect player account (e.g., flag for review, penalty)?
+
+**OQ8**: Should analytics track average offline duration and yield claimed per player?
