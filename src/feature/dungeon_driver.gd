@@ -63,12 +63,15 @@ func on_enemy_defeated(enemy_id: String) -> void:
 			# Check if boss floor
 			if _dungeon_progress.has_method("is_boss_floor"):
 				if _dungeon_progress.is_boss_floor(_dungeon_progress.get_current_floor()):
-					# Boss floor - pause for victory feedback
+					# Boss floor - pause for victory feedback then advance
 					await get_tree().create_timer(1.0).timeout
 					advance_to_next()
 				else:
-					# Normal floor - start next combat
-					_start_next_combat()
+					# Normal floor complete - advance immediately
+					advance_to_next()
+	else:
+		# Floor not complete - start next enemy
+		_start_next_combat()
 
 #region Lifecycle
 
